@@ -12,6 +12,19 @@ Function Name | Description
 `ascii_image` | Converts images to ASCII images
 `random_ascii` | Creates video of random ASCII characters and colors
 
+## Dependencies
+
+* Python 3.7+
+* `imageio`
+* `numpy`
+* `PIL`
+* `tqdm`
+
+```
+pip install numpy pillow tqdm imageio
+pip install imageio-ffmpeg --user
+```
+
 
 ## Samples
 
