@@ -4,7 +4,6 @@ Alex Eidt
 Converts videos/images into ASCII video/images in color, grayscale and monochrome.
 """
 
-import argparse
 import imageio
 import numpy as np
 import multiprocessing
@@ -23,6 +22,8 @@ CHARS = f""" `.,|'\\/~!_-;:)(\"><?*+7j1ilJyc&vt0$VruoI=wzCnY32LTxs4Zkm5hg6qfU9pa
 # Dictionary storing mapping of font sizes to tuples of font ttfs and sizes.
 FONTS = {i: ImageFont.truetype('cour.ttf', size=i) for i in range(1, 100)}
 FONTS = {i: (font, (font.getsize("K"))) for i, font in FONTS.items()}
+# Background color to use. Default is white.
+BACKGROUND_COLOR = (255, 255, 255)
 
 
 def draw(params):
@@ -38,7 +39,7 @@ def draw(params):
     Returns
         Numpy array representing ASCII Image
     """
-    frame, fontsize, bold = params
+    frame, fontsize, boldness = params
     font, (fw, fh) = FONTS[fontsize]
     grayscaled = np.sum(frame * np.array([0.299, 0.587, 0.114]), axis=2, dtype=np.uint16)
     # Convert to ascii index
@@ -49,7 +50,7 @@ def draw(params):
         frame = np.zeros(frame.shape, dtype=np.uint8)
     h, w = grayscaled.shape
 
-    image = Image.new("RGB", (w, h), (255, 255, 255))
+    image = Image.new("RGB", (w, h), BACKGROUND_COLOR)
     draw = ImageDraw.Draw(image)
 
     for row in np.arange(0, h, fh):
@@ -59,7 +60,7 @@ def draw(params):
                 ascii_map[int(row), int(column)],
                 fill=tuple(frame[int(row), int(column)]),
                 font=font,
-                stroke_width=bold
+                stroke_width=boldness
             )
 
     return np.array(image)
@@ -82,7 +83,7 @@ def asciify(filename, output, fontsize, boldness):
         with imageio.get_writer(output, fps=data['fps']) as writer:
             size = int(length / CORES + 0.5)
             if CORES <= 1:
-                for i, frame in tqdm(enumerate(video), total=size):
+                for frame in tqdm(video, total=size):
                     writer.append_data(draw((frame, fontsize, boldness)))
             else:
                 video = iter(video)
@@ -99,8 +100,8 @@ def asciify(filename, output, fontsize, boldness):
 
                     if batch:
                         with multiprocessing.Pool(processes=len(batch)) as pool:
-                            for result in pool.map(draw, batch):
-                                writer.append_data(result)
+                            for ascii_frame in pool.map(draw, batch):
+                                writer.append_data(ascii_frame)
                         progress_bar.update()
                     else:
                         break
@@ -151,8 +152,8 @@ def random_ascii(filename, fps, duration, fontsize, boldness, width=1920, height
                     batch.append((random_frame, fontsize, boldness))
 
                 with multiprocessing.Pool(processes=len(batch)) as pool:
-                    for result in pool.map(draw, batch):
-                        writer.append_data(result)
+                    for ascii_frame in pool.map(draw, batch):
+                        writer.append_data(ascii_frame)
 
 
 def main():
