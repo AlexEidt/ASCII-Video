@@ -26,7 +26,19 @@ pip install imageio-ffmpeg --user
 ```
 
 
-## Samples
+# Images
+
+### Original
+
+<img src="Documentation/Oreo.jpg" alt="Oreo Cookie">
+
+### ASCII
+
+<img src="Documentation/oreo-ascii-30-3.png" alt="Oreo Cookie ASCII">
+
+<br /><br />
+
+# Video
 
 ### Original
 
@@ -44,6 +56,8 @@ pip install imageio-ffmpeg --user
 
 <img src="Documentation/donuts-mono.gif" alt="ASCII Donuts Monochrome">
 
-### Random
+<br /><br />
+
+# Random
 
 <img src="Documentation/random.gif" alt="Random ASCII">
