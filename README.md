@@ -30,7 +30,7 @@ pip install imageio-ffmpeg --user
 
 ### Original
 
-<img src="Documentation/Oreo.jpg" alt="Oreo Cookie">
+<img src="Documentation/oreo.jpg" alt="Oreo Cookie">
 
 ### ASCII
 
