@@ -21,7 +21,7 @@ MONOCHROME = False
 CHARS = f""" `.,|'\\/~!_-;:)(\"><?*+7j1ilJyc&vt0$VruoI=wzCnY32LTxs4Zkm5hg6qfU9paOS#eX8D%bdRPGFK@AMQNWHEB"""[::-1]
 # Dictionary storing mapping of font sizes to tuples of font ttfs and sizes.
 FONTS = {i: ImageFont.truetype('cour.ttf', size=i) for i in range(1, 100)}
-FONTS = {i: (font, (font.getsize("K"))) for i, font in FONTS.items()}
+FONTS = {i: (font, (font.getsize('K'))) for i, font in FONTS.items()}
 # Background color to use. Default is white.
 BACKGROUND_COLOR = (255, 255, 255)
 
