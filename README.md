@@ -28,13 +28,13 @@ pip install imageio-ffmpeg --user
 
 # Images
 
-### Original
+### Butterfly
 
-<img src="Documentation/oreo.jpg" alt="Oreo Cookie">
+<img src="Documentation/butterfly.gif" alt="Butterfly ASCII">
 
-### ASCII
+### Oreo
 
-<img src="Documentation/oreo-ascii-30-3.png" alt="Oreo Cookie ASCII">
+<img src="Documentation/oreo.gif" alt="Oreo Cookie">
 
 <br /><br />
 
