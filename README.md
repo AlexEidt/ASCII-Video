@@ -19,7 +19,7 @@ optional arguments:
   -f                Font size.
   -b                Boldness of characters. Recommended boldness is 1/10 of Font size.
   -d                Use normal drawing algorithm over efficient one.
-  -m                Color to use for Monochromatic characters in R, G, B format.
+  -m                Color to use for Monochromatic characters in "R,G,B" format.
   -c                Clip characters to not go outside of image bounds.
   -r                Draw random ASCII characters.
   -height           Height of random ASCII media.

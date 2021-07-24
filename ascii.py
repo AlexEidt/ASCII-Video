@@ -17,14 +17,12 @@ from PIL import Image, ImageFont, ImageDraw
 FONTS = {i: ImageFont.truetype('cour.ttf', size=i) for i in range(1, 100)}
 FONTS = {i: (font, (font.getsize('K'))) for i, font in FONTS.items()}
 
-BACKGROUND_COLOR = 255
-assert BACKGROUND_COLOR in (255, 0), 'BACKGROUND_COLOR must be either 0 or 255'
-
 
 def get_font_maps(
-    fontsize:       int,
-    boldness:       int,
-    chars:          str,
+    fontsize:   int,
+    boldness:   int,
+    background: int,
+    chars:      str,
 ) -> list:
     """
     Returns a list of font bitmaps.
@@ -32,6 +30,7 @@ def get_font_maps(
     Parameters
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
+        background  - Background color
         chars       - ASCII characters to use in media
 
     Returns
@@ -44,17 +43,17 @@ def get_font_maps(
         w, h = font.getsize(char)
         widths.add(w)
         heights.add(h)
-        image = Image.new("RGB", (w, h), (BACKGROUND_COLOR,) * 3)
+        image = Image.new("RGB", (w, h), (background,) * 3)
         draw = ImageDraw.Draw(image)
         draw.text(
             (0, - (fontsize // 6)),
             char,
-            fill=(255 - BACKGROUND_COLOR,) * 3,
+            fill=(255 - background,) * 3,
             font=font,
             stroke_width=boldness
         )
         bitmap = np.array(image)[:, :, 0]
-        if BACKGROUND_COLOR == 255:
+        if background == 255:
             bitmap = 255 - bitmap
         fonts.append((bitmap / 255).astype(np.float32))
 
@@ -65,6 +64,7 @@ def draw(
     params: Tuple[
         np.array,
         str,
+        int,
         int,
         int,
         bool,
@@ -82,13 +82,14 @@ def draw(
             chars       - ASCII characters to use in media
             fontsize    - Font size to use for ASCII characters
             boldness    - Stroke size to use when drawing ASCII characters
+            background  - Background color
             clip        - Clip characters to not go outside of image bounds
             monochrome  - Color to use for monochromatic. None if not monochromatic
             font_maps   - For use with "draw_efficient". None is passed for "draw".
     Returns
         Numpy array representing ASCII Image
     """
-    frame, chars, fontsize, boldness, clip, monochrome, _ = params
+    frame, chars, fontsize, boldness, background, clip, monochrome, _ = params
     global FONTS
     font, (fw, fh) = FONTS[fontsize]
     grayscaled = np.sum(
@@ -104,7 +105,7 @@ def draw(
         h = (h // fh) * fh - fh
         w = (w // fw) * fw - fw
 
-    image = Image.new("RGB", (w, h), (BACKGROUND_COLOR,) * 3)
+    image = Image.new("RGB", (w, h), (background,) * 3)
     draw = ImageDraw.Draw(image)
 
     for row in np.arange(0, h, fh):
@@ -126,6 +127,7 @@ def draw_efficient(
         str,
         int,
         int,
+        int,
         bool,
         Union[Tuple[int, int, int], None],
         list
@@ -145,6 +147,7 @@ def draw_efficient(
             chars       - ASCII characters to use in media
             fontsize    - Font size to use for ASCII characters
             boldness    - Stroke size to use when drawing ASCII characters
+            background  - Background color
             clip        - Clip characters to not go outside of image bounds
             monochrome  - Color to use for monochromatic. None if not monochromatic
             font_maps   - List of font bitmaps
@@ -152,13 +155,13 @@ def draw_efficient(
     Returns
         Numpy array representing ASCII Image
     """
-    frame, chars, fontsize, boldness, clip, monochrome, font_maps = params
+    frame, chars, fontsize, boldness, background, clip, monochrome, font_maps = params
     fh, fw = font_maps[0].shape
     oh, ow, _ = frame.shape
     frame = frame[::fh, ::fw]
     h, w, _ = frame.shape
 
-    bg_white = BACKGROUND_COLOR == 255
+    bg_white = background == 255
     if monochrome is not None:
         colors = np.array(monochrome)
         if bg_white:
@@ -196,6 +199,7 @@ def asciify(
     chars:      str,
     fontsize:   int,
     boldness:   int,
+    background: int,
     font_maps:  list,
     cores:      int,
     draw_func:  Callable,
@@ -216,6 +220,7 @@ def asciify(
         chars       - ASCII characters to use in media
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
+        background  - Background color
         font_maps   - List of font bitmaps
         cores       - CPU Cores to use when processing images
         draw_func   - Drawing function to use
@@ -244,7 +249,16 @@ def asciify(
         if cores <= 1 or draw_func.__name__ == 'draw_efficient':
             for frame in tqdm(frames, total=length):
                 writer.append_data(
-                    draw_func((frame, chars, fontsize, boldness, clip, monochrome, font_maps))
+                    draw_func((
+                        frame,
+                        chars,
+                        fontsize,
+                        boldness,
+                        background,
+                        clip,
+                        monochrome,
+                        font_maps
+                    ))
                 )
         else:
             progress_bar = tqdm(total=int(length / cores + 0.5))
@@ -275,6 +289,7 @@ def ascii_image(
     chars:      str,
     fontsize:   int,
     boldness:   int,
+    background: int,
     font_maps:  list,
     draw_func:  Callable,
     monochrome: Union[Tuple[int, int, int], None] = None,
@@ -292,6 +307,7 @@ def ascii_image(
         chars       - ASCII characters to use in media
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
+        background  - Background color
         font_maps   - List of font bitmaps
         draw_func   - Drawing function to use
         monochrome  - Color to use for Monochromatic characters, otherwise None
@@ -302,12 +318,9 @@ def ascii_image(
     """
     if random:
         image = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
-        h, w = height, width
     else:
         image = imageio.imread(filename)[:, :, :3]
-        h, w, _ = image.shape
-    font_maps = get_font_maps(fontsize, boldness, chars) if draw_func.__name__ == 'draw_efficient' else None
-    image = draw_func((image, chars, fontsize, boldness, clip, monochrome, font_maps))
+    image = draw_func((image, chars, fontsize, boldness, background, clip, monochrome, font_maps))
     imageio.imsave(output, image)
 
 
@@ -320,7 +333,8 @@ def main():
     parser.add_argument('-f', required=False, help='Font size.', nargs='?', const=1, type=int, default=20)
     parser.add_argument('-b', required=False, help='Boldness of characters. Recommended boldness is 1/10 of Font size.', nargs='?', const=1, type=int, default=2)
     parser.add_argument('-d', required=False, help="Use normal drawing algorithm over efficient one.", action='store_true')
-    parser.add_argument('-m', required=False, help='Color to use for Monochromatic characters in R, G, B format.')
+    parser.add_argument('-bg', required=False, help='Background color. Must be either 255 for white or 0 for black.', nargs='?', const=1, type=int, default=255)
+    parser.add_argument('-m', required=False, help='Color to use for Monochromatic characters in "R,G,B" format.')
     parser.add_argument('-c', required=False, help='Clip characters to not go outside of image bounds.', action='store_false')
     parser.add_argument('-r', required=False, help='Draw random ASCII characters.', action='store_true')
     parser.add_argument('-height', required=False, help='Height of random ASCII media.', nargs='?', const=1, type=int, default=1080)
@@ -336,7 +350,7 @@ def main():
     output = args.output
     chars = ''.join([c for c in args.chars if c in chars]) if args.chars else chars
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
-    font_maps = get_font_maps(args.f, args.b, chars)
+    font_maps = get_font_maps(args.f, args.b, args.bg, chars)
     cores = min(args.cores, multiprocessing.cpu_count())
     if filename.endswith(('png', 'jpg', 'jpeg', 'svg')):
         ascii_image(
@@ -345,6 +359,7 @@ def main():
             chars,
             args.f,
             args.b,
+            args.bg,
             font_maps,
             draw_efficient if not args.d else draw,
             monochrome,
@@ -360,6 +375,7 @@ def main():
             chars,
             args.f,
             args.b,
+            args.bg,
             font_maps,
             cores,
             draw_efficient if not args.d else draw,
