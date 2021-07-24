@@ -233,7 +233,7 @@ def asciify(
         duration    - Duration (in seconds) of randomized video (For use with random=True only)
     """
     if random:
-        data = {'fps': fps, 'duration': duration, 'source_size': (width, height)}
+        data = {'fps': fps, 'duration': duration}
         frames = (
             np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
             for _ in range(int(fps * duration + 0.5))
@@ -244,7 +244,6 @@ def asciify(
         frames = iter(video)
 
     length = int(data['fps'] * data['duration'] + 0.5)
-    w, h = data['source_size']
     with imageio.get_writer(output, fps=data['fps']) as writer:
         if cores <= 1 or draw_func.__name__ == 'draw_efficient':
             for frame in tqdm(frames, total=length):
