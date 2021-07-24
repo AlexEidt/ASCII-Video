@@ -321,7 +321,7 @@ def main():
     parser.add_argument('-b', required=False, help='Boldness of characters. Recommended boldness is 1/10 of Font size.', nargs='?', const=1, type=int, default=2)
     parser.add_argument('-d', required=False, help="Use normal drawing algorithm over efficient one.", action='store_true')
     parser.add_argument('-m', required=False, help='Color to use for Monochromatic characters in R, G, B format.')
-    parser.add_argument('-c', required=False, help='Clip characters to not go outside of image bounds.', action='store_true')
+    parser.add_argument('-c', required=False, help='Clip characters to not go outside of image bounds.', action='store_false')
     parser.add_argument('-r', required=False, help='Draw random ASCII characters.', action='store_true')
     parser.add_argument('-height', required=False, help='Height of random ASCII media.', nargs='?', const=1, type=int, default=1080)
     parser.add_argument('-width', required=False, help='Width of random ASCII media.', nargs='?', const=1, type=int, default=1920)

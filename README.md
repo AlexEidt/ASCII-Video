@@ -65,10 +65,6 @@ pip install imageio-ffmpeg --user
 
 <img src="Documentation/donuts.gif" alt="ASCII Donuts">
 
-### Gray
-
-<img src="Documentation/donuts-gray.gif" alt="ASCII Donuts Grayscaled">
-
 ### Monochrome
 
 <img src="Documentation/donuts-mono.gif" alt="ASCII Donuts Monochrome">
