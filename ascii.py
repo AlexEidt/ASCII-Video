@@ -112,8 +112,8 @@ def draw(
         for column in range(0, w, fw):
             draw.text(
                 (column, row),
-                ascii_map[int(row), int(column)],
-                fill=tuple(frame[int(row), int(column)]) if monochrome is None else monochrome,
+                ascii_map[row, column],
+                fill=tuple(frame[row, column]) if monochrome is None else monochrome,
                 font=font,
                 stroke_width=boldness
             )
