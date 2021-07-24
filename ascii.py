@@ -327,7 +327,7 @@ def main():
     parser.add_argument('-width', required=False, help='Width of random ASCII media.', nargs='?', const=1, type=int, default=1920)
     parser.add_argument('-cores', required=False, help='CPU Cores to use when processing images.', nargs='?', const=1, type=int, default=4)
     parser.add_argument('-fps', required=False, help='Frames per second of randomized video (For use with random only).', nargs='?', const=1, type=int, default=30)
-    parser.add_argument('-dur', required=False, help='Duration (in seconds) of randomized video (For use with random only)', nargs='?', const=1, type=int, default=10)
+    parser.add_argument('-dur', required=False, help='Duration (in seconds) of randomized video (For use with random only).', nargs='?', const=1, type=int, default=10)
 
     args = parser.parse_args()
 
@@ -338,7 +338,7 @@ def main():
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
     font_maps = get_font_maps(args.f, args.b, chars)
     cores = min(args.cores, multiprocessing.cpu_count())
-    if filename.endswith(('png', 'jpg', 'jpeg')):
+    if filename.endswith(('png', 'jpg', 'jpeg', 'svg')):
         ascii_image(
             filename,
             output,

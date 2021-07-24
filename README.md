@@ -26,7 +26,7 @@ optional arguments:
   -width            Width of random ASCII media.
   -cores            CPU Cores to use when processing images.
   -fps              Frames per second of randomized video (For use with random only).
-  -dur              Duration (in seconds) of randomized video (For use with random only)
+  -dur              Duration (in seconds) of randomized video (For use with random only).
 ```
 
 ## Dependencies
