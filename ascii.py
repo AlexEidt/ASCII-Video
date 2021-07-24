@@ -1,7 +1,7 @@
 """
 Alex Eidt
 
-Converts videos/images into ASCII video/images in color, grayscale and monochrome.
+Converts videos/images into ASCII video/images in various formats.
 """
 
 import argparse
@@ -135,7 +135,7 @@ def draw_efficient(
 ) -> np.array:
     """
     Draws an ASCII Image. This function is heavily optimized, achieving around a 100x
-    speedup over the "draw" function, with some drawbacks. Hanging characters such as q, g, y, etc...
+    speedup over the "draw" function, with some drawbacks. Characters such as q, g, y, etc...
     are not rendered properly in this implementation due to the lower ends being cut off.
     Characters are also shifted to adjust for a bug in the ImageFont library which clips
     rendered characters. The user may choose to discard all characters with hanging
