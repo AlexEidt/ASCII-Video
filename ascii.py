@@ -108,8 +108,8 @@ def draw(
     image = Image.new("RGB", (w, h), (background,) * 3)
     draw = ImageDraw.Draw(image)
 
-    for row in np.arange(0, h, fh):
-        for column in np.arange(0, w, fw):
+    for row in range(0, h, fh):
+        for column in range(0, w, fw):
             draw.text(
                 (column, row),
                 ascii_map[int(row), int(column)],
