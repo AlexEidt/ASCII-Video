@@ -312,8 +312,8 @@ def ascii_image(
         monochrome  - Color to use for Monochromatic characters, otherwise None
         clip        - Clip characters to not go outside of image bounds
         random      - If True, create random image, otherwise use given filename
-        width       - Width of video
-        height      - Height of video
+        width       - Width of video (For use with random=True only)
+        height      - Height of video (For use with random=True only)
     """
     if random:
         image = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
