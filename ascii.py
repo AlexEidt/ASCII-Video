@@ -180,6 +180,7 @@ def draw_efficient(
     image = map(lambda idx: font_maps[grayscaled[idx]], range(len(grayscaled)))
     image = np.array(list(image)).reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
+
     if clip:
         if monochrome is None:
             colors = colors[:oh, :ow]
@@ -248,16 +249,9 @@ def asciify(
         if cores <= 1 or draw_func.__name__ == 'draw_efficient':
             for frame in tqdm(frames, total=length):
                 writer.append_data(
-                    draw_func((
-                        frame,
-                        chars,
-                        fontsize,
-                        boldness,
-                        background,
-                        clip,
-                        monochrome,
-                        font_maps
-                    ))
+                    draw_func(
+                        (frame, chars, fontsize, boldness, background, clip, monochrome, font_maps)
+                    )
                 )
         else:
             progress_bar = tqdm(total=int(length / cores + 0.5))
@@ -269,7 +263,7 @@ def asciify(
                     except StopIteration:
                         break
                     else:
-                        batch.append((frame, chars, fontsize, boldness, clip, monochrome, None))
+                        batch.append((frame, chars, fontsize, boldness, background, clip, monochrome, None))
 
                 if batch:
                     with multiprocessing.Pool(processes=len(batch)) as pool:
