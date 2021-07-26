@@ -38,11 +38,6 @@ from typing import Union, Tuple, Callable
 from PIL import Image, ImageFont, ImageDraw
 
 
-# Dictionary storing mapping of font sizes to tuples of font ttfs and sizes.
-FONTS = {i: ImageFont.truetype('cour.ttf', size=i) for i in range(1, 100)}
-FONTS = {i: (font, (font.getsize('K'))) for i, font in FONTS.items()}
-
-
 def get_font_maps(
     fontsize:   int,
     boldness:   int,
@@ -63,7 +58,7 @@ def get_font_maps(
     """
     fonts = []
     widths, heights = set(), set()
-    font, _ = FONTS[fontsize]
+    font = ImageFont.truetype('cour.ttf', size=fontsize)
     for char in chars:
         w, h = font.getsize(char)
         widths.add(w)
@@ -122,7 +117,8 @@ def draw(
     frame, chars, fontsize, boldness, background, clip, monochrome, _ = params
     # fh -> font height.
     # fw -> font width.
-    font, (fw, fh) = FONTS[fontsize]
+    font = ImageFont.truetype('cour.ttf', size=fontsize)
+    fw, fh = font.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
     grayscaled = np.sum(
         frame * np.array([0.299, 0.587, 0.114]),
