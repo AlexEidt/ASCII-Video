@@ -43,6 +43,7 @@ def get_font_maps(
         w, h = font.getsize(char)
         widths.add(w)
         heights.add(h)
+        # Draw font character as a w x h image.
         image = Image.new("RGB", (w, h), (background,) * 3)
         draw = ImageDraw.Draw(image)
         draw.text(
@@ -52,11 +53,15 @@ def get_font_maps(
             font=font,
             stroke_width=boldness
         )
+        # Since font bitmaps are grayscale, all three color channels contain the same
+        # information, so one channel is extracted.
         bitmap = np.array(image)[:, :, 0]
         if background == 255:
             bitmap = 255 - bitmap
         fonts.append((bitmap / 255).astype(np.float32))
 
+    # Crop the font bitmaps to all have the same dimensions based on the
+    # minimum font width and height of all font bitmaps.
     return list(map(lambda x: x[:min(heights), :min(widths)], fonts))
 
 
@@ -90,14 +95,17 @@ def draw(
         Numpy array representing ASCII Image
     """
     frame, chars, fontsize, boldness, background, clip, monochrome, _ = params
-    global FONTS
+    # fh -> font height.
+    # fw -> font width.
     font, (fw, fh) = FONTS[fontsize]
+    # Grayscale original frame and normalize to ASCII index.
     grayscaled = np.sum(
         frame * np.array([0.299, 0.587, 0.114]),
         axis=2,
         dtype=np.uint32
     ) * (len(chars) - 1) // 255
-    # Convert to ascii index
+
+    # Convert to ascii index.
     ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
     h, w = grayscaled.shape
 
@@ -108,6 +116,9 @@ def draw(
     image = Image.new("RGB", (w, h), (background,) * 3)
     draw = ImageDraw.Draw(image)
 
+    # Draw each individual character on the new image.
+    # Which character to draw is determined by sampling the "ascii_map" array.
+    # The  color to draw this character with is determined by sampling the original "frame".
     for row in range(0, h, fh):
         for column in range(0, w, fw):
             draw.text(
@@ -156,8 +167,13 @@ def draw_efficient(
         Numpy array representing ASCII Image
     """
     frame, chars, fontsize, boldness, background, clip, monochrome, font_maps = params
+    # fh -> font height.
+    # fw -> font width.
     fh, fw = font_maps[0].shape
+    # oh -> Original height.
+    # ow -> Original width.
     oh, ow, _ = frame.shape
+    # Sample original frame at steps of font width and height.
     frame = frame[::fh, ::fw]
     h, w, _ = frame.shape
 
@@ -170,13 +186,15 @@ def draw_efficient(
         colors = np.repeat(np.repeat(255 - frame, fw, axis=1), fh, axis=0)
     else:
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
+
+    # Grayscale original frame and normalize to ASCII index.
     grayscaled = np.sum(
         frame * np.array([0.299, 0.587, 0.114]),
         axis=2,
         dtype=np.uint32
     ).ravel() * (len(chars) - 1) // 255
 
-    # Create a new list with each font bitmap based on the grayscale value
+    # Create a new list with each font bitmap based on the grayscale value.
     image = map(lambda idx: font_maps[grayscaled[idx]], range(len(grayscaled)))
     image = np.array(list(image)).reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
@@ -194,7 +212,7 @@ def draw_efficient(
     return image
 
 
-def asciify(
+def ascii_video(
     filename:   str,
     output:     str,
     chars:      str,
@@ -247,6 +265,7 @@ def asciify(
     length = int(data['fps'] * data['duration'] + 0.5)
     with imageio.get_writer(output, fps=data['fps']) as writer:
         if cores <= 1 or draw_func.__name__ == 'draw_efficient':
+            # Loop over every frame in the video and convert to ASCII and append to the output.
             for frame in tqdm(frames, total=length):
                 writer.append_data(
                     draw_func(
@@ -255,8 +274,11 @@ def asciify(
                 )
         else:
             progress_bar = tqdm(total=int(length / cores + 0.5))
+            # Since this drawing function is significantly slower, we extract "cores" frames
+            # at a time in batches. We then process these batches of frames in parallel.
             while True:
                 batch = []
+                # Get batches of images from the video.
                 for _ in range(cores):
                     try:
                         frame = next(frames)
@@ -266,6 +288,7 @@ def asciify(
                         batch.append((frame, chars, fontsize, boldness, background, clip, monochrome, None))
 
                 if batch:
+                    # Process image batches in parallel.
                     with multiprocessing.Pool(processes=len(batch)) as pool:
                         for ascii_frame in pool.map(draw, batch):
                             writer.append_data(ascii_frame)
@@ -362,7 +385,7 @@ def main():
             args.height
         )
     else:
-        asciify(
+        ascii_video(
             filename,
             output,
             chars,
