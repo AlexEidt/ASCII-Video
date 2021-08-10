@@ -101,8 +101,11 @@ def draw(
     """
     Draws an ASCII Image.
 
+    NOTE: The parameter is a tuple since this is how all arguments are
+    passed in when using parallel processing.
+
     Parameters
-        params - A tuple holding 3 parameters: frame, fontsize, bold.
+        params - A tuple holding the parameters.
             frame       - Numpy array representing image
             chars       - ASCII characters to use in media
             fontsize    - Font size to use for ASCII characters
@@ -173,8 +176,11 @@ def draw_efficient(
     rendered characters. The user may choose to discard all characters with hanging
     components to utilize this function without much drawback.
 
+    NOTE: The parameter is a tuple since this is how all arguments are
+    passed in when using parallel processing.
+
     Parameters
-        params - A tuple holding 3 parameters: frame, fontsize, bold.
+        params - A tuple holding parameters.
             frame       - Numpy array representing image
             chars       - ASCII characters to use in media
             fontsize    - Font size to use for ASCII characters
