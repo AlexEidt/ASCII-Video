@@ -391,7 +391,7 @@ def main():
     chars = f""" `.,|'\\/~!_-;:)(\"><?*+7j1ilJyc&vt0$VruoI=wzCnY32LTxs4Zkm5hg6qfU9paOS#eX8D%bdRPGFK@AMQNWHEB"""[::-1]
     filename = args.filename
     output = args.output
-    chars = ''.join([c for c in args.chars if c in chars]) if args.chars else chars
+    chars = ''.join([c for c in chars if c in args.chars]) if args.chars else chars
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
     font_maps = get_font_maps(args.f, args.b, args.bg, chars)
     cores = min(args.cores, multiprocessing.cpu_count())
