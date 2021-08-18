@@ -67,7 +67,7 @@ def get_font_maps(
         image = Image.new("RGB", (w, h), (background,) * 3)
         draw = ImageDraw.Draw(image)
         draw.text(
-            (0, - (fontsize // 6)),
+            (0, -(fontsize // 6)),
             char,
             fill=(255 - background,) * 3,
             font=font,
