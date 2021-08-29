@@ -1,6 +1,6 @@
 # ASCII Video Converter
 
-Convert Video and Images to ASCII form! An efficient ASCII drawing algorithm allows for ~10 FPS ASCII conversion.
+Convert Video and Images to ASCII form! An efficient ASCII drawing algorithm allows for up to 30 FPS ASCII conversion.
 
 ## Usage
 
