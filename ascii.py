@@ -215,24 +215,11 @@ def draw_efficient(
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
 
     # Grayscale original frame and normalize to ASCII index.
-    # Below we see the "proper" way to grayscale and image and normalize to ASCII Index
-    # by first multiplying each color channel by a weight and then summing.
-    # The alternate approach is shown below.
-
-    # grayscaled = np.sum(
-    #     frame * np.array([0.299, 0.587, 0.114]),
-    #     axis=2,
-    #     dtype=np.uint32
-    # ).ravel() * (len(chars) - 1) // 255
-
-    # Here we see the alternate approach. Here, to grayscale the image, we just
-    # take all the values from the green channel. As we can see from the grayscaling weights
-    # above, the green channel has the most effect on how humans percieve the color, so we
-    # just take this channel as the grayscale value. Additionally, instead dividing by 255,
-    # we can recognize that 255 is close to 256, which is a power of 2. This means that we can
-    # do a bit shift to divide, which is much faster than integer division. The final result
-    # won't technically be accurate, but hey, this is all art anyways. :)
-    grayscaled = frame[:, :, 1].astype(np.uint32).ravel() * (len(chars) - 1) >> 8
+    grayscaled = (np.sum(
+        frame * np.array([0.299, 0.587, 0.114]),
+        axis=2,
+        dtype=np.uint32
+    ).ravel() * (len(chars) - 1)) >> 8
 
     # Create a new list with each font bitmap based on the grayscale value.
     image = map(lambda idx: font_maps[grayscaled[idx]], range(len(grayscaled)))
