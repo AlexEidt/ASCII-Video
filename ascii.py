@@ -199,10 +199,10 @@ def draw_efficient(
     fh, fw = font_maps[0].shape
     # oh -> Original height.
     # ow -> Original width.
-    oh, ow, _ = frame.shape
+    oh, ow = frame.shape[:2]
     # Sample original frame at steps of font width and height.
     frame = frame[::fh, ::fw]
-    h, w, _ = frame.shape
+    h, w = frame.shape[:2]
 
     bg_white = background == 255
     if monochrome is not None:
