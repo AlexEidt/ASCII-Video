@@ -127,7 +127,7 @@ def draw(
         frame * np.array([0.299, 0.587, 0.114]),
         axis=2,
         dtype=np.uint32
-    ) * len(chars) // 255
+    ) * len(chars) >> 8
 
     # Convert to ascii index.
     ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
