@@ -127,7 +127,7 @@ def draw(
         frame * np.array([0.299, 0.587, 0.114]),
         axis=2,
         dtype=np.uint32
-    ) * (len(chars) - 1) // 255
+    ) * len(chars) // 255
 
     # Convert to ascii index.
     ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
@@ -215,11 +215,11 @@ def draw_efficient(
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
 
     # Grayscale original frame and normalize to ASCII index.
-    grayscaled = (np.sum(
+    grayscaled = np.sum(
         frame * np.array([0.299, 0.587, 0.114]),
         axis=2,
         dtype=np.uint32
-    ).ravel() * (len(chars) - 1)) >> 8
+    ).ravel() * len(chars) >> 8
 
     # Create a new list with each font bitmap based on the grayscale value.
     image = map(lambda idx: font_maps[grayscaled[idx]], range(len(grayscaled)))
