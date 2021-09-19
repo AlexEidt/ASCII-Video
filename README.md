@@ -30,6 +30,8 @@ optional arguments:
   -dur              Duration (in seconds) of randomized video (For use with random only).
 ```
 
+NOTE: If using the `-r` option to create random ascii images, use a dummy placeholder value for the input `filename`.
+
 ## Dependencies
 
 * Python 3.7+

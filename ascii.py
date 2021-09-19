@@ -3,6 +3,7 @@ Alex Eidt
 
 Converts videos/images into ASCII video/images in various formats.
 
+A simple character set to use: "@%#*+=-:. "
 
 usage: ascii.py [-optional args] filename output
 
@@ -37,6 +38,8 @@ from tqdm import tqdm
 from typing import Union, Tuple, Callable
 from PIL import Image, ImageFont, ImageDraw
 
+FONT = 'cour.ttf'
+
 
 def get_font_maps(
     fontsize:   int,
@@ -58,7 +61,7 @@ def get_font_maps(
     """
     fonts = []
     widths, heights = set(), set()
-    font = ImageFont.truetype('cour.ttf', size=fontsize)
+    font = ImageFont.truetype(FONT, size=fontsize)
     for char in chars:
         w, h = font.getsize(char)
         widths.add(w)
@@ -120,7 +123,7 @@ def draw(
     frame, chars, fontsize, boldness, background, clip, monochrome, _ = params
     # fh -> font height.
     # fw -> font width.
-    font = ImageFont.truetype('cour.ttf', size=fontsize)
+    font = ImageFont.truetype(FONT, size=fontsize)
     fw, fh = font.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
     grayscaled = np.sum(
@@ -291,16 +294,14 @@ def ascii_video(
 
     length = int(data['fps'] * data['duration'] + 0.5)
     with imageio.get_writer(output, fps=data['fps']) as writer:
-        if cores <= 1 or draw_func.__name__ == 'draw_efficient':
+        if cores <= 1:
             # Loop over every frame in the video and convert to ASCII and append to the output.
             for frame in tqdm(frames, total=length):
                 writer.append_data(
-                    draw_func(
-                        (frame, chars, fontsize, boldness, background, clip, monochrome, font_maps)
-                    )
+                    draw_func((frame, chars, fontsize, boldness, background, clip, monochrome, font_maps))
                 )
         else:
-            progress_bar = tqdm(total=int(length / cores + 0.5))
+            progress_bar = tqdm(total=length)
             # Since this drawing function is significantly slower, we extract "cores" frames
             # at a time in batches. We then process these batches of frames in parallel.
             while True:
@@ -317,11 +318,12 @@ def ascii_video(
                 if batch:
                     # Process image batches in parallel.
                     with multiprocessing.Pool(processes=len(batch)) as pool:
-                        for ascii_frame in pool.map(draw, batch):
+                        for ascii_frame in pool.map(draw_func, batch):
                             writer.append_data(ascii_frame)
-                    progress_bar.update()
+                            progress_bar.update()
                 else:
                     break
+
     if not random:
         video.close()
 
@@ -369,6 +371,7 @@ def ascii_image(
 
 def main():
     parser = argparse.ArgumentParser(description='Blazing fast ASCII Media converter.')
+
     parser.add_argument('filename', help='File name of the input image.')
     parser.add_argument('output', help='File name of the output image.')
 
@@ -382,7 +385,7 @@ def main():
     parser.add_argument('-r', required=False, help='Draw random ASCII characters.', action='store_true')
     parser.add_argument('-height', required=False, help='Height of random ASCII media.', nargs='?', const=1, type=int, default=1080)
     parser.add_argument('-width', required=False, help='Width of random ASCII media.', nargs='?', const=1, type=int, default=1920)
-    parser.add_argument('-cores', required=False, help='CPU Cores to use when processing images.', nargs='?', const=1, type=int, default=4)
+    parser.add_argument('-cores', required=False, help='CPU Cores to use when processing images.', nargs='?', const=1, type=int, default=0)
     parser.add_argument('-fps', required=False, help='Frames per second of randomized video (For use with random only).', nargs='?', const=1, type=int, default=30)
     parser.add_argument('-dur', required=False, help='Duration (in seconds) of randomized video (For use with random only).', nargs='?', const=1, type=int, default=10)
 
@@ -395,7 +398,12 @@ def main():
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
     font_maps = get_font_maps(args.f, args.b, args.bg, chars)
     cores = min(args.cores, multiprocessing.cpu_count())
-    if filename.endswith(('png', 'jpg', 'jpeg', 'svg')):
+
+    with open('filetypes.txt', mode='r') as f:
+        file_types = tuple(f.read().split('\n'))
+
+    # Check if input file is an image.
+    if filename.endswith(file_types) or output.endswith(file_types):
         ascii_image(
             filename,
             output,
