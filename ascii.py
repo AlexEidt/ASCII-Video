@@ -288,12 +288,12 @@ def ascii_video(
             for _ in range(int(fps * duration + 0.5))
         )
     else:
-        video = imageio.get_reader(filename)
+        video = imageio.read(filename)
         data = video.get_meta_data()
         frames = iter(video)
 
     length = int(data['fps'] * data['duration'] + 0.5)
-    with imageio.get_writer(output, fps=data['fps']) as writer:
+    with imageio.save(output, fps=data['fps']) as writer:
         if cores <= 1:
             # Loop over every frame in the video and convert to ASCII and append to the output.
             for frame in tqdm(frames, total=length):
@@ -301,28 +301,27 @@ def ascii_video(
                     draw_func((frame, chars, fontsize, boldness, background, clip, monochrome, font_maps))
                 )
         else:
+            # Process batches of frames in parallel.
             progress_bar = tqdm(total=length)
-            # Since this drawing function is significantly slower, we extract "cores" frames
-            # at a time in batches. We then process these batches of frames in parallel.
-            while True:
-                batch = []
-                # Get batches of images from the video.
-                for _ in range(cores):
-                    try:
-                        frame = next(frames)
-                    except StopIteration:
-                        break
-                    else:
-                        batch.append((frame, chars, fontsize, boldness, background, clip, monochrome, None))
+            with multiprocessing.Pool(processes=cores) as pool:
+                while True:
+                    batch = []
+                    # Get batches of images from the video.
+                    for _ in range(cores):
+                        try:
+                            frame = next(frames)
+                        except StopIteration:
+                            break
+                        else:
+                            batch.append((frame, chars, fontsize, boldness, background, clip, monochrome, font_maps))
 
-                if batch:
-                    # Process image batches in parallel.
-                    with multiprocessing.Pool(processes=len(batch)) as pool:
-                        for ascii_frame in pool.map(draw_func, batch):
-                            writer.append_data(ascii_frame)
+                    if batch:
+                        # Process image batches in parallel.
+                        for frame in pool.map(draw_func, batch):
+                            writer.append_data(frame)
                             progress_bar.update()
-                else:
-                    break
+                    else:
+                        break
 
     if not random:
         video.close()
