@@ -116,7 +116,7 @@ def draw(
             background  - Background color
             clip        - Clip characters to not go outside of image bounds
             monochrome  - Color to use for monochromatic. None if not monochromatic
-            font_maps   - For use with "draw_efficient".
+            font_maps   - For use with "draw_efficient"
     Returns
         Numpy array representing ASCII Image
     """
