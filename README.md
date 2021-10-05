@@ -28,6 +28,7 @@ optional arguments:
   -cores            CPU Cores to use when processing images.
   -fps              Frames per second of randomized video (For use with random only).
   -dur              Duration (in seconds) of randomized video (For use with random only).
+  -font             Font to use.
 ```
 
 NOTE: If using the `-r` option to create random ascii images, use a dummy placeholder value for the input `filename`.

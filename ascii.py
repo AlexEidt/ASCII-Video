@@ -28,25 +28,19 @@ optional arguments:
   -cores            CPU Cores to use when processing images.
   -fps              Frames per second of randomized video (For use with random only).
   -dur              Duration (in seconds) of randomized video (For use with random only).
+  -font             Font to use.
 """
 
 import argparse
+import string
 import imageio
 import numpy as np
 import multiprocessing
 from tqdm import tqdm
-from typing import Union, Tuple, Callable
 from PIL import Image, ImageFont, ImageDraw
 
-FONT = 'cour.ttf'
 
-
-def get_font_maps(
-    fontsize:   int,
-    boldness:   int,
-    background: int,
-    chars:      str,
-) -> list:
+def get_font_maps(fontsize, boldness, background, chars, font):
     """
     Returns a list of font bitmaps.
 
@@ -55,15 +49,16 @@ def get_font_maps(
         boldness    - Stroke size to use when drawing ASCII characters
         background  - Background color
         chars       - ASCII characters to use in media
+        font        - Font to use
 
     Returns
-        List of font bitmaps corresponding to the order of characters in CHARS
+        List of font bitmaps corresponding to the characters in "chars".
     """
     fonts = []
     widths, heights = set(), set()
-    font = ImageFont.truetype(FONT, size=fontsize)
+    font_ttf = ImageFont.truetype(font, size=fontsize)
     for char in chars:
-        w, h = font.getsize(char)
+        w, h = font_ttf.getsize(char)
         widths.add(w)
         heights.add(h)
         # Draw font character as a w x h image.
@@ -73,7 +68,7 @@ def get_font_maps(
             (0, -(fontsize // 6)),
             char,
             fill=(255 - background,) * 3,
-            font=font,
+            font=font_ttf,
             stroke_width=boldness
         )
         # Since font bitmaps are grayscale, all three color channels contain the same
@@ -85,22 +80,12 @@ def get_font_maps(
 
     # Crop the font bitmaps to all have the same dimensions based on the
     # minimum font width and height of all font bitmaps.
-    return list(map(lambda x: x[:min(heights), :min(widths)], fonts))
+    fonts = list(map(lambda x: x[:min(heights), :min(widths)], fonts))
+    # Sort font bitmaps by pixel density.
+    return sorted(fonts, key=lambda x: x.sum(), reverse=True)
 
 
-def draw(
-    params: Tuple[
-        np.array,
-        str,
-        int,
-        int,
-        int,
-        bool,
-        bool,
-        Union[Tuple[int, int, int], None],
-        None
-    ]
-) -> np.array:
+def draw(params):
     """
     Draws an ASCII Image.
 
@@ -108,7 +93,7 @@ def draw(
     passed in when using parallel processing.
 
     Parameters
-        params - A tuple holding the parameters.
+        params - A tuple holding the following parameters:
             frame       - Numpy array representing image
             chars       - ASCII characters to use in media
             fontsize    - Font size to use for ASCII characters
@@ -117,20 +102,18 @@ def draw(
             clip        - Clip characters to not go outside of image bounds
             monochrome  - Color to use for monochromatic. None if not monochromatic
             font_maps   - For use with "draw_efficient"
+            font        - Font to use
+
     Returns
         Numpy array representing ASCII Image
     """
-    frame, chars, fontsize, boldness, background, clip, monochrome, _ = params
+    frame, chars, fontsize, boldness, background, clip, monochrome, _, font = params
     # fh -> font height.
     # fw -> font width.
-    font = ImageFont.truetype(FONT, size=fontsize)
-    fw, fh = font.getsize('K')
+    font_ttf = ImageFont.truetype(font, size=fontsize)
+    fw, fh = font_ttf.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
-    grayscaled = np.sum(
-        frame * np.array([0.299, 0.587, 0.114]),
-        axis=2,
-        dtype=np.uint32
-    ) * len(chars) >> 8
+    grayscaled = (frame * np.array([0.299, 0.587, 0.114])).sum(axis=2, dtype=np.uint32).ravel() * len(chars) >> 8
 
     # Convert to ascii index.
     ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
@@ -152,25 +135,14 @@ def draw(
                 (column, row),
                 ascii_map[row, column],
                 fill=tuple(frame[row, column]) if monochrome is None else monochrome,
-                font=font,
+                font=font_ttf,
                 stroke_width=boldness
             )
 
     return np.array(image)
 
 
-def draw_efficient(
-    params: Tuple[
-        np.array,
-        str,
-        int,
-        int,
-        int,
-        bool,
-        Union[Tuple[int, int, int], None],
-        list
-    ]
-) -> np.array:
+def draw_efficient(params):
     """
     Draws an ASCII Image. This function is heavily optimized, achieving around a 100x
     speedup over the "draw" function, with some drawbacks. Characters such as q, g, y, etc...
@@ -183,20 +155,21 @@ def draw_efficient(
     passed in when using parallel processing.
 
     Parameters
-        params - A tuple holding parameters.
+        params - A tuple holding the following parameters:
             frame       - Numpy array representing image
             chars       - ASCII characters to use in media
-            fontsize    - Font size to use for ASCII characters
-            boldness    - Stroke size to use when drawing ASCII characters
+            fontsize    - Font size to use for ASCII characters. For use with "draw" only
+            boldness    - Stroke size to use when drawing ASCII characters. For use with "draw" only
             background  - Background color
             clip        - Clip characters to not go outside of image bounds
             monochrome  - Color to use for monochromatic. None if not monochromatic
             font_maps   - List of font bitmaps
+            font        - Font to use. For use with "draw" only
 
     Returns
         Numpy array representing ASCII Image
     """
-    frame, chars, fontsize, boldness, background, clip, monochrome, font_maps = params
+    frame, chars, _, _, background, clip, monochrome, font_maps, _ = params
     # fh -> font height.
     # fw -> font width.
     fh, fw = font_maps[0].shape
@@ -218,14 +191,10 @@ def draw_efficient(
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
 
     # Grayscale original frame and normalize to ASCII index.
-    grayscaled = np.sum(
-        frame * np.array([0.299, 0.587, 0.114]),
-        axis=2,
-        dtype=np.uint32
-    ).ravel() * len(chars) >> 8
+    frame = (frame * np.array([0.299, 0.587, 0.114])).sum(axis=2, dtype=np.uint32).ravel() * len(chars) >> 8
 
     # Create a new list with each font bitmap based on the grayscale value.
-    image = map(lambda idx: font_maps[grayscaled[idx]], range(len(grayscaled)))
+    image = map(lambda idx: font_maps[frame[idx]], range(len(frame)))
     image = np.array(list(image)).reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
 
@@ -243,23 +212,15 @@ def draw_efficient(
 
 
 def ascii_video(
-    filename:   str,
-    output:     str,
-    chars:      str,
-    fontsize:   int,
-    boldness:   int,
-    background: int,
-    font_maps:  list,
-    cores:      int,
-    draw_func:  Callable,
-    monochrome: Union[Tuple[int, int, int], None] = None,
-    clip:       bool = True,
-    random:     bool = False,
-    width:      int = 1920,
-    height:     int = 1088,
-    fps:        Union[int, float] = 30,
-    duration:   Union[int, float] = 10,
-) -> None:
+    filename, output, chars,
+    fontsize=20, boldness=2, background=255, cores=1,
+    draw_func=draw_efficient,
+    monochrome=None,
+    clip=True, random=False,
+    width=1920, height=1088,
+    fps=30, duration=10,
+    font='cour.ttf'
+):
     """
     Converts a given video into an ASCII video.
 
@@ -270,7 +231,6 @@ def ascii_video(
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
         background  - Background color
-        font_maps   - List of font bitmaps
         cores       - CPU Cores to use when processing images
         draw_func   - Drawing function to use
         monochrome  - Color to use for Monochromatic characters, otherwise None
@@ -280,6 +240,7 @@ def ascii_video(
         height      - Height of video (For use with random=True only)
         fps         - Frames per second of randomized video (For use with random=True only)
         duration    - Duration (in seconds) of randomized video (For use with random=True only)
+        font        - Font to use
     """
     if random:
         data = {'fps': fps, 'duration': duration}
@@ -292,14 +253,15 @@ def ascii_video(
         data = video.get_meta_data()
         frames = iter(video)
 
+    font_maps = get_font_maps(fontsize, boldness, background, chars, font)
+
     length = int(data['fps'] * data['duration'] + 0.5)
+    parameters = (chars, fontsize, boldness, background, clip, monochrome, font_maps, font)
     with imageio.save(output, fps=data['fps']) as writer:
         if cores <= 1:
             # Loop over every frame in the video and convert to ASCII and append to the output.
             for frame in tqdm(frames, total=length):
-                writer.append_data(
-                    draw_func((frame, chars, fontsize, boldness, background, clip, monochrome, font_maps))
-                )
+                writer.append_data(draw_func((frame, *parameters)))
         else:
             # Process batches of frames in parallel.
             progress_bar = tqdm(total=length)
@@ -313,7 +275,7 @@ def ascii_video(
                         except StopIteration:
                             break
                         else:
-                            batch.append((frame, chars, fontsize, boldness, background, clip, monochrome, font_maps))
+                            batch.append((frame, *parameters))
 
                     if batch:
                         # Process image batches in parallel.
@@ -328,20 +290,14 @@ def ascii_video(
 
 
 def ascii_image(
-    filename:   str,
-    output:     str,
-    chars:      str,
-    fontsize:   int,
-    boldness:   int,
-    background: int,
-    font_maps:  list,
-    draw_func:  Callable,
-    monochrome: Union[Tuple[int, int, int], None] = None,
-    clip:       bool = True,
-    random:     bool = False,
-    width:      int = 1920,
-    height:     int = 1088
-) -> None:
+    filename, output, chars,
+    fontsize=20, boldness=2, background=255,
+    draw_func=draw_efficient,
+    monochrome=None,
+    clip=True, random=False,
+    width=1920, height=1088,
+    font='cour.ttf'
+):
     """
     Converts an image into an ASCII Image.
 
@@ -352,19 +308,20 @@ def ascii_image(
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
         background  - Background color
-        font_maps   - List of font bitmaps
         draw_func   - Drawing function to use
         monochrome  - Color to use for Monochromatic characters, otherwise None
         clip        - Clip characters to not go outside of image bounds
         random      - If True, create random image, otherwise use given filename
         width       - Width of video (For use with random=True only)
         height      - Height of video (For use with random=True only)
+        font        - Font to use
     """
     if random:
         image = np.random.randint(0, 255, (height, width, 3), dtype=np.uint8)
     else:
         image = imageio.imread(filename)[:, :, :3]
-    image = draw_func((image, chars, fontsize, boldness, background, clip, monochrome, font_maps))
+    font_maps = get_font_maps(fontsize, boldness, background, chars, font)
+    image = draw_func((image, chars, fontsize, boldness, background, clip, monochrome, font_maps, font))
     imageio.imsave(output, image)
 
 
@@ -387,15 +344,14 @@ def main():
     parser.add_argument('-cores', required=False, help='CPU Cores to use when processing images.', nargs='?', const=1, type=int, default=0)
     parser.add_argument('-fps', required=False, help='Frames per second of randomized video (For use with random only).', nargs='?', const=1, type=int, default=30)
     parser.add_argument('-dur', required=False, help='Duration (in seconds) of randomized video (For use with random only).', nargs='?', const=1, type=int, default=10)
+    parser.add_argument('-font', required=False, help='Font to use.', nargs='?', const=1, type=str, default='cour.ttf')
 
     args = parser.parse_args()
 
-    chars = f""" `.,|'\\/~!_-;:)(\"><?*+7j1ilJyc&vt0$VruoI=wzCnY32LTxs4Zkm5hg6qfU9paOS#eX8D%bdRPGFK@AMQNWHEB"""[::-1]
     filename = args.filename
     output = args.output
-    chars = ''.join([c for c in chars if c in args.chars]) if args.chars else chars
+    chars = ''.join([c for c in string.printable if c in args.chars]) if args.chars else string.printable
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
-    font_maps = get_font_maps(args.f, args.b, args.bg, chars)
     cores = min(args.cores, multiprocessing.cpu_count())
 
     with open('filetypes.txt', mode='r') as f:
@@ -404,38 +360,25 @@ def main():
     # Check if input file is an image.
     if filename.endswith(file_types) or output.endswith(file_types):
         ascii_image(
-            filename,
-            output,
-            chars,
-            args.f,
-            args.b,
-            args.bg,
-            font_maps,
-            draw_efficient if not args.d else draw,
+            filename, output, chars,
+            args.f, args.b, args.bg,
+            draw if args.d else draw_efficient,
             monochrome,
-            args.c,
-            args.r,
-            args.width,
-            args.height
+            args.c, args.r,
+            args.width, args.height,
+            args.font
         )
     else:
         ascii_video(
-            filename,
-            output,
-            chars,
-            args.f,
-            args.b,
-            args.bg,
-            font_maps,
+            filename, output, chars,
+            args.f, args.b, args.bg,
             cores,
-            draw_efficient if not args.d else draw,
+            draw if args.d else draw_efficient,
             monochrome,
-            args.c,
-            args.r,
-            args.width,
-            args.height,
-            args.fps,
-            args.dur
+            args.c, args.r,
+            args.width, args.height,
+            args.fps, args.dur,
+            args.font
         )
 
 
