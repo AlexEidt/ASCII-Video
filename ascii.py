@@ -111,6 +111,7 @@ def draw(params):
     # fh -> font height.
     # fw -> font width.
     font_ttf = ImageFont.truetype(font, size=fontsize)
+    h, w = frame.shape[:2]
     fw, fh = font_ttf.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
     grayscaled = np.sum(frame * np.array([3, 1, 4]), axis=2, dtype=np.uint32).ravel()
@@ -118,8 +119,7 @@ def draw(params):
     grayscaled >>= 11
 
     # Convert to ascii index.
-    ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
-    h, w = grayscaled.shape
+    ascii_map = chars[grayscaled].reshape((h, w))
 
     if clip:
         h = (h // fh) * fh - fh
@@ -130,7 +130,7 @@ def draw(params):
 
     # Draw each individual character on the new image.
     # Which character to draw is determined by sampling the "ascii_map" array.
-    # The  color to draw this character with is determined by sampling the original "frame".
+    # The color to draw this character with is determined by sampling the original "frame".
     for row in range(0, h, fh):
         for column in range(0, w, fw):
             draw.text(
@@ -357,6 +357,7 @@ def main():
     filename = args.filename
     output = args.output
     chars = ''.join([c for c in string.printable if c in args.chars]) if args.chars else string.printable
+    chars = np.array(list(chars))
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
     cores = min(args.cores, multiprocessing.cpu_count())
 
