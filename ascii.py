@@ -82,7 +82,7 @@ def get_font_maps(fontsize, boldness, background, chars, font):
     # minimum font width and height of all font bitmaps.
     fonts = list(map(lambda x: x[:min(heights), :min(widths)], fonts))
     # Sort font bitmaps by pixel density.
-    return sorted(fonts, key=lambda x: x.sum(), reverse=True)
+    return np.array(sorted(fonts, key=lambda x: x.sum(), reverse=True))
 
 
 def draw(params):
@@ -198,8 +198,9 @@ def draw_efficient(params):
     frame >>= 11
 
     # Create a new list with each font bitmap based on the grayscale value.
-    image = map(lambda idx: font_maps[frame[idx]], range(len(frame)))
-    image = np.array(list(image)).reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
+    frame = frame[range(len(frame))]
+    image = font_maps[frame]
+    image = image.reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
 
     if clip:
