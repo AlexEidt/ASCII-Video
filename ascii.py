@@ -113,7 +113,9 @@ def draw(params):
     font_ttf = ImageFont.truetype(font, size=fontsize)
     fw, fh = font_ttf.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
-    grayscaled = (frame * np.array([0.299, 0.587, 0.114])).sum(axis=2, dtype=np.uint32).ravel() * len(chars) >> 8
+    grayscaled = np.sum(frame * np.array([3, 1, 4]), axis=2, dtype=np.uint32).ravel()
+    grayscaled *= len(chars)
+    grayscaled >>= 11
 
     # Convert to ascii index.
     ascii_map = np.vectorize(lambda x: chars[x])(grayscaled)
@@ -191,7 +193,9 @@ def draw_efficient(params):
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
 
     # Grayscale original frame and normalize to ASCII index.
-    frame = (frame * np.array([0.299, 0.587, 0.114])).sum(axis=2, dtype=np.uint32).ravel() * len(chars) >> 8
+    frame = np.sum(frame * np.array([3, 1, 4]), axis=2, dtype=np.uint32).ravel()
+    frame *= len(chars)
+    frame >>= 11
 
     # Create a new list with each font bitmap based on the grayscale value.
     image = map(lambda idx: font_maps[frame[idx]], range(len(frame)))
@@ -266,8 +270,8 @@ def ascii_video(
             # Process batches of frames in parallel.
             progress_bar = tqdm(total=length)
             with multiprocessing.Pool(processes=cores) as pool:
+                batch = []
                 while True:
-                    batch = []
                     # Get batches of images from the video.
                     for _ in range(cores):
                         try:
@@ -282,6 +286,7 @@ def ascii_video(
                         for frame in pool.map(draw_func, batch):
                             writer.append_data(frame)
                             progress_bar.update()
+                        batch.clear()
                     else:
                         break
 
