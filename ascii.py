@@ -361,21 +361,10 @@ def main():
     monochrome = tuple(map(int, args.m.split(','))) if args.m else None
     cores = min(args.cores, multiprocessing.cpu_count())
 
-    with open('filetypes.txt', mode='r') as f:
-        file_types = tuple(f.read().split('\n'))
-
-    # Check if input file is an image.
-    if filename.endswith(file_types) or output.endswith(file_types):
-        ascii_image(
-            filename, output, chars,
-            args.f, args.b, args.bg,
-            draw if args.d else draw_efficient,
-            monochrome,
-            args.c, args.r,
-            args.width, args.height,
-            args.font
-        )
-    else:
+    try:
+        imageio.imread(filename)
+    except Exception:
+        # Process Video.
         ascii_video(
             filename, output, chars,
             args.f, args.b, args.bg,
@@ -385,6 +374,17 @@ def main():
             args.c, args.r,
             args.width, args.height,
             args.fps, args.dur,
+            args.font
+        )
+    else:
+        # Process Image.
+        ascii_image(
+            filename, output, chars,
+            args.f, args.b, args.bg,
+            draw if args.d else draw_efficient,
+            monochrome,
+            args.c, args.r,
+            args.width, args.height,
             args.font
         )
 
