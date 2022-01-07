@@ -114,7 +114,7 @@ def draw(params):
     h, w = frame.shape[:2]
     fw, fh = font_ttf.getsize('K')
     # Grayscale original frame and normalize to ASCII index.
-    grayscaled = np.sum(frame * np.array([3, 1, 4]), axis=2, dtype=np.uint32).ravel()
+    grayscaled = np.sum(frame * np.array([3, 4, 1]), axis=2, dtype=np.uint32).ravel()
     grayscaled *= len(chars)
     grayscaled >>= 11
 
@@ -193,7 +193,7 @@ def draw_efficient(params):
         colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
 
     # Grayscale original frame and normalize to ASCII index.
-    frame = np.sum(frame * np.array([3, 1, 4]), axis=2, dtype=np.uint32).ravel()
+    frame = np.sum(frame * np.array([3, 4, 1]), axis=2, dtype=np.uint32).ravel()
     frame *= len(chars)
     frame >>= 11
 
