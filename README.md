@@ -1,37 +1,24 @@
 # ASCII Video Converter
 
-Convert Video and Images to ASCII form! An efficient ASCII drawing algorithm allows for up to 30 FPS ASCII conversion.
+Convert Video and Images to ASCII form!
 
 ## Usage
 
 ```
-usage: ascii.py [-optional args] filename output
-
-Blazing fast ASCII Media converter.
-
 positional arguments:
-  filename          File name of the input image.
-  output            File name of the output image.
+  filename      File name of the input image.
+  output        File name of the output image.
 
 optional arguments:
-  -h, --help        show this help message and exit
-  -chars            ASCII chars to use in media.
-  -f                Font size.
-  -b                Boldness of characters. Recommended boldness is 1/10 of Font size.
-  -d                Use normal drawing algorithm over efficient one.
-  -bg               Background color. Must be either 255 for white or 0 for black.
-  -m                Color to use for Monochromatic characters in "R,G,B" format.
-  -c                Clip characters to not go outside of image bounds.
-  -r                Draw random ASCII characters.
-  -height           Height of random ASCII media.
-  -width            Width of random ASCII media.
-  -cores            CPU Cores to use when processing images.
-  -fps              Frames per second of randomized video (For use with random only).
-  -dur              Duration (in seconds) of randomized video (For use with random only).
-  -font             Font to use.
+  -h, --help    show this help message and exit
+  -chars CHARS  ASCII chars to use in media.
+  -f [F]        Font size.
+  -b [B]        Boldness of characters. Recommended boldness is 1/10 of Font size.
+  -bg [BG]      Background color. Must be either 255 for white or 0 for black.
+  -m M          Color to use for Monochromatic characters in "R,G,B" format.
+  -c            Clip characters to not go outside of image bounds.
+  -font [FONT]  Font to use.
 ```
-
-NOTE: If using the `-r` option to create random ascii images, use a dummy placeholder value for the input `filename`.
 
 ## Dependencies
 
@@ -72,9 +59,3 @@ pip install imageio-ffmpeg --user
 ### Monochrome
 
 <img src="Documentation/donuts-mono.gif" alt="ASCII Donuts Monochrome">
-
-<br /><br />
-
-# Random
-
-<img src="Documentation/random.gif" alt="Random ASCII">
