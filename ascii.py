@@ -85,14 +85,12 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
 
-    if monochrome is not None:
-        colors = np.array(monochrome)
-        if background == 255:
-            colors = 255 - colors
-    elif background == 255:
-        colors = np.repeat(np.repeat(255 - frame, fw, axis=1), fh, axis=0)
+    if len(monochrome):
+        colors = 255 - monochrome if background == 255 else monochrome
     else:
-        colors = np.repeat(np.repeat(frame, fw, axis=1), fh, axis=0)
+        colors = np.repeat(
+            np.repeat(255 - frame if background == 255 else frame, fw, axis=1), fh, axis=0
+        )
 
     # Grayscale original frame and normalize to ASCII index.
     frame = np.sum(frame * np.array([3, 4, 1]), axis=2, dtype=np.uint32).ravel()
@@ -106,22 +104,17 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
 
     if clip:
-        if monochrome is None:
+        if not len(monochrome):
             colors = colors[:oh, :ow]
-        image = (image[:oh, :ow] * colors).astype(np.uint8)
-        if background == 255:
-            return 255 - image
-        return image
+        image = image[:oh, :ow]
+
     image = (image * colors).astype(np.uint8)
-    if background == 255:
-        return 255 - image
-    return image
+    return 255 - image if background == 255 else image
 
 
 def ascii_video(
-    filename, output, chars,
+    filename, output, chars, monochrome,
     fontsize=20, boldness=2, background=255,
-    monochrome=None,
     clip=True,
     font='cour.ttf'
 ):
@@ -136,9 +129,8 @@ def ascii_video(
 
 
 def ascii_image(
-    filename, output, chars,
+    filename, output, chars, monochrome,
     fontsize=20, boldness=2, background=255,
-    monochrome=None,
     clip=True,
     font='cour.ttf'
 ):
@@ -165,23 +157,21 @@ def main():
     args = parser.parse_args()
 
     chars = np.array([c for c in string.printable if c in args.chars])
-    monochrome = tuple(map(int, args.m.split(','))) if args.m else None
+    monochrome = np.array(list(map(int, args.m.split(','))) if args.m else [])
 
     try:
         imageio.imread(args.filename)
     except Exception:
         ascii_video(
-            args.filename, args.output, chars,
+            args.filename, args.output, chars, monochrome,
             args.f, args.b, args.bg,
-            monochrome,
             args.c,
             args.font
         )
     else:
         ascii_image(
-            args.filename, args.output, chars,
+            args.filename, args.output, chars, monochrome,
             args.f, args.b, args.bg,
-            monochrome,
             args.c,
             args.font
         )
