@@ -113,8 +113,13 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
 
 
 def ascii_video(
-    filename, output, chars, monochrome,
-    fontsize=20, boldness=2, background=255,
+    filename,
+    output,
+    chars,
+    monochrome,
+    fontsize=20,
+    boldness=2,
+    background=255,
     clip=True,
     font='cour.ttf'
 ):
@@ -129,8 +134,13 @@ def ascii_video(
 
 
 def ascii_image(
-    filename, output, chars, monochrome,
-    fontsize=20, boldness=2, background=255,
+    filename,
+    output,
+    chars,
+    monochrome,
+    fontsize=20,
+    boldness=2,
+    background=255,
     clip=True,
     font='cour.ttf'
 ):
