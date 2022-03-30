@@ -10,6 +10,7 @@ A simple character set to use: "@%#*+=-:. "
 import argparse
 import string
 import imageio
+import imageio_ffmpeg
 import numpy as np
 from tqdm import tqdm as ProgressBar
 from PIL import Image, ImageFont, ImageDraw
@@ -128,9 +129,18 @@ def ascii_video(
     with imageio.read(filename) as video:
         data = video.get_meta_data()
 
-        with imageio.save(output, fps=data['fps']) as writer:
-            for frame in ProgressBar(video, total=int(data['fps'] * data['duration'] + 0.5)):
-                writer.append_data(draw_ascii(frame, chars, background, clip, monochrome, font_maps))
+        writer = imageio_ffmpeg.write_frames(
+            output,
+            data['source_size'],
+            fps=data['fps'],
+            audio_path=filename
+        )
+        writer.send(None)
+
+        for frame in ProgressBar(video, total=int(data['fps'] * data['duration'] + 0.5)):
+            writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_maps))
+
+        writer.close()
 
 
 def ascii_image(
