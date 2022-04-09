@@ -188,8 +188,12 @@ def main():
 
     args = parser.parse_args()
 
+    assert args.fontsize > 0, 'Font size must be > 0.'
+    assert args.bold >= 0, 'Boldness must be >= 0.'
+    assert args.background in [0, 255], 'Background must be either 0 or 255.'
+
     chars = np.array([c for c in string.printable if c in args.characters])
-    monochrome = np.array(list(map(int, args.monochrome.split(','))) if args.monochrome else [])
+    monochrome = np.array(list(map(int, args.monochrome.split(','))) if args.monochrome else [], dtype=np.uint8)
 
     try:
         imageio.imread(args.filename)
