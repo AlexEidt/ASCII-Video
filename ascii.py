@@ -129,20 +129,29 @@ def ascii_video(
 ):
     font_maps = get_font_maps(fontsize, boldness, background, chars, font)
 
-    with imageio.read(filename) as video:
-        data = video.get_meta_data()
+    video = imageio_ffmpeg.read_frames(filename)
+    data = next(video)
 
-        kwargs = {'fps': data['fps']}
-        if audio:
-            kwargs['audio_path'] = filename
+    w, h = data['size']
+    frame_size = (h, w, 3)
+    # Read and convert first frame to figure out frame size.
+    first_frame = np.frombuffer(next(video), dtype=np.uint8).reshape(frame_size)
+    first_frame = draw_ascii(first_frame, chars, background, clip, monochrome, font_maps)
+    h, w = first_frame.shape[:2]
 
-        writer = imageio_ffmpeg.write_frames(output, data['source_size'], **kwargs)
-        writer.send(None)
+    kwargs = {'fps': data['fps']}
+    if audio:
+        kwargs['audio_path'] = filename
 
-        for frame in ProgressBar(video, total=int(data['fps'] * data['duration'] + 0.5)):
-            writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_maps))
+    writer = imageio_ffmpeg.write_frames(output, (w, h), **kwargs)
+    writer.send(None)
+    writer.send(first_frame)
 
-        writer.close()
+    for frame in ProgressBar(video, total=int(data['fps'] * data['duration'] + 0.5)):
+        frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
+        writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_maps))
+
+    writer.close()
 
 
 def ascii_image(
@@ -168,35 +177,35 @@ def main():
     parser.add_argument('filename', help='File name of the input image.')
     parser.add_argument('output', help='File name of the output image.')
 
-    parser.add_argument('-chars', required=False, help='ASCII chars to use in media.', default=string.printable)
-    parser.add_argument('-f', required=False, help='Font size.', nargs='?', const=1, type=int, default=20)
-    parser.add_argument('-b', required=False, help='Boldness of characters. Recommended boldness is 1/10 of Font size.', nargs='?', const=1, type=int, default=2)
-    parser.add_argument('-bg', required=False, help='Background color. Must be either 255 for white or 0 for black.', nargs='?', const=1, type=int, default=255)
-    parser.add_argument('-m', required=False, help='Color to use for Monochromatic characters in "R,G,B" format.')
-    parser.add_argument('-c', required=False, help='Clip characters to not go outside of image bounds.', action='store_false')
-    parser.add_argument('-font', required=False, help='Font to use.', nargs='?', const=1, type=str, default='cour.ttf')
-    parser.add_argument('-a', required=False, help='Add audio from the input file to the output file.', action='store_true')
+    parser.add_argument('-chars', '--characters', required=False, help='ASCII chars to use in media.', default=string.printable)
+    parser.add_argument('-f', '--fontsize', required=False, help='Font size.', nargs='?', const=1, type=int, default=20)
+    parser.add_argument('-b', '--bold', required=False, help='Boldness of characters. Recommended boldness is 1/10 of Font size.', nargs='?', const=1, type=int, default=2)
+    parser.add_argument('-bg', '--background', required=False, help='Background color. Must be either 255 for white or 0 for black.', nargs='?', const=1, type=int, default=255)
+    parser.add_argument('-m', '--monochrome', required=False, help='Color to use for Monochromatic characters in "R,G,B" format.')
+    parser.add_argument('-c', '--clip', required=False, help='Clip characters to not go outside of image bounds.', action='store_false')
+    parser.add_argument('-font', '--font', required=False, help='Font to use.', nargs='?', const=1, type=str, default='cour.ttf')
+    parser.add_argument('-a', '--audio', required=False, help='Add audio from the input file to the output file.', action='store_true')
 
     args = parser.parse_args()
 
-    chars = np.array([c for c in string.printable if c in args.chars])
-    monochrome = np.array(list(map(int, args.m.split(','))) if args.m else [])
+    chars = np.array([c for c in string.printable if c in args.characters])
+    monochrome = np.array(list(map(int, args.monochrome.split(','))) if args.monochrome else [])
 
     try:
         imageio.imread(args.filename)
     except Exception:
         ascii_video(
             args.filename, args.output, chars, monochrome,
-            args.f, args.b, args.bg,
-            args.c,
+            args.fontsize, args.bold, args.background,
+            args.clip,
             args.font,
             args.audio
         )
     else:
         ascii_image(
             args.filename, args.output, chars, monochrome,
-            args.f, args.b, args.bg,
-            args.c,
+            args.fontsize, args.bold, args.background,
+            args.clip,
             args.font
         )
 
