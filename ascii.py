@@ -86,7 +86,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
 
-    if len(monochrome):
+    if len(monochrome) != 0:
         colors = 255 - monochrome if background == 255 else monochrome
     else:
         colors = np.repeat(
@@ -105,12 +105,14 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
 
     if clip:
-        if not len(monochrome):
+        if len(monochrome) == 0:
             colors = colors[:oh, :ow]
         image = image[:oh, :ow]
 
-    image = (image * colors).astype(np.uint8)
-    return 255 - image if background == 255 else image
+    image = np.ascontiguousarray((image * colors).astype(np.uint8))
+    if background == 255:
+        return 255 - image
+    return image
 
 
 def ascii_video(
@@ -122,19 +124,19 @@ def ascii_video(
     boldness=2,
     background=255,
     clip=True,
-    font='cour.ttf'
+    font='cour.ttf',
+    audio=False
 ):
     font_maps = get_font_maps(fontsize, boldness, background, chars, font)
 
     with imageio.read(filename) as video:
         data = video.get_meta_data()
 
-        writer = imageio_ffmpeg.write_frames(
-            output,
-            data['source_size'],
-            fps=data['fps'],
-            audio_path=filename
-        )
+        kwargs = {'fps': data['fps']}
+        if audio:
+            kwargs['audio_path'] = filename
+
+        writer = imageio_ffmpeg.write_frames(output, data['source_size'], **kwargs)
         writer.send(None)
 
         for frame in ProgressBar(video, total=int(data['fps'] * data['duration'] + 0.5)):
@@ -173,6 +175,7 @@ def main():
     parser.add_argument('-m', required=False, help='Color to use for Monochromatic characters in "R,G,B" format.')
     parser.add_argument('-c', required=False, help='Clip characters to not go outside of image bounds.', action='store_false')
     parser.add_argument('-font', required=False, help='Font to use.', nargs='?', const=1, type=str, default='cour.ttf')
+    parser.add_argument('-a', required=False, help='Add audio from the input file to the output file.', action='store_true')
 
     args = parser.parse_args()
 
@@ -186,7 +189,8 @@ def main():
             args.filename, args.output, chars, monochrome,
             args.f, args.b, args.bg,
             args.c,
-            args.font
+            args.font,
+            args.audio
         )
     else:
         ascii_image(

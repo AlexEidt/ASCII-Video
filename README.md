@@ -18,6 +18,7 @@ optional arguments:
   -m M          Color to use for Monochromatic characters in "R,G,B" format.
   -c            Clip characters to not go outside of image bounds.
   -font [FONT]  Font to use.
+  -a            Add audio from the input file to the output file.
 ```
 
 ## Dependencies
