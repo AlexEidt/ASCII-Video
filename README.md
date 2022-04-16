@@ -1,6 +1,6 @@
 # ASCII Video Converter
 
-Convert Video and Images to ASCII form!
+Convert Video and Images to ASCII form! Achieve Real-Time Color ASCII Rendering using NumPy Vectorization.
 
 ## Usage
 
