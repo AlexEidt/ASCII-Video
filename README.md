@@ -33,29 +33,26 @@ optional arguments:
 pip install numpy pillow tqdm imageio imageio-ffmpeg
 ```
 
-
 # Images
 
-### Butterfly
+<img src="Documentation/butterfly.jpg" alt="Butterfly" />
 
-<img src="Documentation/butterfly.gif" alt="Butterfly ASCII">
+<img src="Documentation/butterfly-ascii-color.png" alt="Butterfly ASCII Color" />
 
-### Oreo
+<img src="Documentation/butterfly-ascii-mono.png" alt="Butterfly ASCII Monochrome" />
 
-<img src="Documentation/oreo.gif" alt="Oreo Cookie">
 
-<br /><br />
+<img src="Documentation/houses.jpg" alt="Houses" />
+
+<img src="Documentation/houses-ascii-color.png" alt="Houses ASCII Color" />
+
+<img src="Documentation/houses-ascii-mono.png" alt="Houses ASCII Monochrome" />
+
 
 # Video
 
 ### Original
 
-<img src="Documentation/original.gif" alt="Donuts">
+<img src="Documentation/donuts.gif" alt="Donuts">
 
-### Color
-
-<img src="Documentation/donuts.gif" alt="ASCII Donuts">
-
-### Monochrome
-
-<img src="Documentation/donuts-mono.gif" alt="ASCII Donuts Monochrome">
+<img src="Documentation/donuts-ascii.gif" alt="Donuts ASCII">
