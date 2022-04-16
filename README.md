@@ -25,6 +25,7 @@ optional arguments:
 
 * Python 3.7+
 * `imageio`
+* `imageio-ffmpeg`
 * `numpy`
 * `PIL`
 * `tqdm`
