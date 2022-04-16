@@ -51,8 +51,6 @@ pip install numpy pillow tqdm imageio imageio-ffmpeg
 
 # Video
 
-### Original
-
 <img src="Documentation/donuts.gif" alt="Donuts">
 
 <img src="Documentation/donuts-ascii.gif" alt="Donuts ASCII">
