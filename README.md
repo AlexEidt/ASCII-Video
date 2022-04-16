@@ -30,8 +30,7 @@ optional arguments:
 * `tqdm`
 
 ```
-pip install numpy pillow tqdm imageio
-pip install imageio-ffmpeg --user
+pip install numpy pillow tqdm imageio imageio-ffmpeg
 ```
 
 
