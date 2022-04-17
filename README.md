@@ -23,6 +23,8 @@ optional arguments:
   -a            Add audio from the input file to the output file.
 ```
 
+Instead of a filename, a directory name can be used as the `filename` argument. All media in this directory will be converted to ASCII Form and be placed in a directory specified by the `output` argument. Note that this means if a directory is passed as the `filename` argument, the `output` argument must also be a directory and all media in `filename` must be either images and/or videos.
+
 ## Dependencies
 
 * Python 3.7+

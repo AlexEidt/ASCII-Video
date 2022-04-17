@@ -8,6 +8,7 @@ A simple character set to use: "@%#*+=-:. "
 
 """
 
+import os
 import argparse
 import string
 import imageio
@@ -176,7 +177,7 @@ def ascii_image(
     imageio.imsave(output, image)
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(description="Blazing fast ASCII Media converter.")
 
     parser.add_argument("filename", help="File name of the input image.")
@@ -250,24 +251,16 @@ def main():
         action="store_true",
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    assert args.fontsize > 0, "Font size must be > 0."
-    assert args.bold >= 0, "Boldness must be >= 0."
-    assert args.background in [0, 255], "Background must be either 0 or 255."
 
-    chars = np.array([c for c in string.printable if c in args.characters])
-    monochrome = np.array(
-        list(map(int, args.monochrome.split(","))) if args.monochrome else [],
-        dtype=np.uint8,
-    )
-
+def convert_ascii(args, filename, output, chars, monochrome):
     try:
-        imageio.imread(args.filename)
+        imageio.imread(filename)
     except Exception:
         ascii_video(
-            args.filename,
-            args.output,
+            filename,
+            output,
             chars,
             monochrome,
             args.fontsize,
@@ -279,8 +272,8 @@ def main():
         )
     else:
         ascii_image(
-            args.filename,
-            args.output,
+            filename,
+            output,
             chars,
             monochrome,
             args.fontsize,
@@ -289,6 +282,29 @@ def main():
             args.clip,
             args.font,
         )
+
+
+def main():
+    args = parse_args()
+
+    assert args.fontsize > 0, "Font size must be > 0."
+    assert args.bold >= 0, "Boldness must be >= 0."
+    assert args.background in [0, 255], "Background must be either 0 or 255."
+
+    chars = np.array([c for c in string.printable if c in args.characters])
+    monochrome = np.array(
+        list(map(int, args.monochrome.split(","))) if args.monochrome else [],
+        dtype=np.uint8,
+    )
+
+    if os.path.isdir(args.filename):
+        os.makedirs(args.output, exist_ok=True)
+        for filename in os.listdir(args.filename):
+            path = os.path.join(args.filename, filename)
+            output = os.path.join(args.output, filename)
+            convert_ascii(args, path, output, chars, monochrome)
+    else:
+        convert_ascii(args, args.filename, args.output, chars, monochrome)
 
 
 if __name__ == "__main__":
