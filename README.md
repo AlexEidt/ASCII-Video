@@ -2,6 +2,8 @@
 
 Convert Video and Images to ASCII form! Achieve Real-Time Color ASCII Rendering using NumPy Vectorization.
 
+See this algorithm work on a webcam stream: https://github.com/AlexEidt/ASCII-Vision
+
 ## Usage
 
 ```
