@@ -18,7 +18,7 @@ from tqdm import tqdm as ProgressBar
 from PIL import Image, ImageFont, ImageDraw
 
 
-def get_font_maps(fontsize, boldness, background, chars, font):
+def get_font_bitmaps(fontsize, boldness, background, chars, font):
     """
     Returns a list of font bitmaps.
 
@@ -51,10 +51,10 @@ def get_font_maps(fontsize, boldness, background, chars, font):
         )
         # Since font bitmaps are grayscale, all three color channels contain the same
         # information, so one channel is extracted.
-        bitmap = np.array(image)[:, :, 0]
+        bitmap = np.array(image, dtype=np.uint8)[:, :, 0]
         if background == 255:
             bitmap = 255 - bitmap
-        fonts.append((bitmap / 255).astype(np.float32))
+        fonts.append(bitmap)
 
     # Crop the font bitmaps to all have the same dimensions based on the
     # minimum font width and height of all font bitmaps.
@@ -63,24 +63,24 @@ def get_font_maps(fontsize, boldness, background, chars, font):
     return np.array(sorted(fonts, key=lambda x: x.sum(), reverse=True))
 
 
-def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
+def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     """
     Draws an ASCII Image.
 
     Parameters
-        frame       - Numpy array representing image
-        chars       - ASCII characters to use in media
-        background  - Background color
-        clip        - Clip characters to not go outside of image bounds
-        monochrome  - Color to use for monochromatic. None if not monochromatic
-        font_maps   - List of font bitmaps
+        frame           - Numpy array representing image
+        chars           - ASCII characters to use in media
+        background      - Background color
+        clip            - Clip characters to not go outside of image bounds
+        monochrome      - Color to use for monochromatic. None if not monochromatic
+        font_bitmaps    - List of font bitmaps
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
     """
     # fh -> font height.
     # fw -> font width.
-    fh, fw = font_maps[0].shape
+    fh, fw = font_bitmaps[0].shape
     # oh -> Original height.
     # ow -> Original width.
     oh, ow = frame.shape[:2]
@@ -91,21 +91,15 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
     if len(monochrome) != 0:
         colors = 255 - monochrome if background == 255 else monochrome
     else:
-        colors = np.repeat(
-            np.repeat(255 - frame if background == 255 else frame, fw, axis=1),
-            fh,
-            axis=0,
-        )
+        colors = (255 - frame if background == 255 else frame).repeat(fh, 0).repeat(fw, 1)
 
     # Grayscale original frame and normalize to ASCII index.
-    frame = np.sum(frame * np.array([3, 4, 1]), axis=2, dtype=np.uint32).ravel()
+    frame = (frame * np.array([3, 4, 1])).sum(axis=2, dtype=np.uint32).ravel()
     frame *= len(chars)
     frame >>= 11
 
     # Create a new list with each font bitmap based on the grayscale value.
-    frame = frame[range(len(frame))]
-    image = font_maps[frame]
-    image = image.reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
+    image = font_bitmaps[frame].reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
     image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
 
     if clip:
@@ -113,7 +107,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_maps):
             colors = colors[:oh, :ow]
         image = image[:oh, :ow]
 
-    image = np.ascontiguousarray((image * colors).astype(np.uint8))
+    image = np.ascontiguousarray((image * colors.astype(np.uint16) // 255).astype(np.uint8))
     if background == 255:
         return 255 - image
     return image
@@ -131,7 +125,7 @@ def ascii_video(
     font="cour.ttf",
     audio=False,
 ):
-    font_maps = get_font_maps(fontsize, boldness, background, chars, font)
+    font_maps = get_font_bitmaps(fontsize, boldness, background, chars, font)
 
     video = imageio_ffmpeg.read_frames(filename)
     data = next(video)
@@ -172,8 +166,8 @@ def ascii_image(
     font="cour.ttf",
 ):
     image = imageio.imread(filename)[:, :, :3]
-    font_maps = get_font_maps(fontsize, boldness, background, chars, font)
-    image = draw_ascii(image, chars, background, clip, monochrome, font_maps)
+    font_bitmaps = get_font_bitmaps(fontsize, boldness, background, chars, font)
+    image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps)
     imageio.imsave(output, image)
 
 
@@ -294,7 +288,7 @@ def main():
     chars = np.array([c for c in string.printable if c in args.characters])
     monochrome = np.array(
         list(map(int, args.monochrome.split(","))) if args.monochrome else [],
-        dtype=np.uint8,
+        dtype=np.uint32,
     )
 
     if os.path.isdir(args.filename):
