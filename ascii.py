@@ -91,7 +91,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     if len(monochrome) != 0:
         colors = 255 - monochrome if background == 255 else monochrome
     else:
-        colors = (255 - frame if background == 255 else frame).repeat(fh, 0).repeat(fw, 1)
+        colors = (
+            (255 - frame if background == 255 else frame).repeat(fh, 0).repeat(fw, 1)
+        )
 
     # Grayscale original frame and normalize to ASCII index.
     frame = (frame * np.array([3, 4, 1])).sum(axis=2, dtype=np.uint32).ravel()
@@ -107,7 +109,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
             colors = colors[:oh, :ow]
         image = image[:oh, :ow]
 
-    image = np.ascontiguousarray((image * colors.astype(np.uint16) // 255).astype(np.uint8))
+    image = np.ascontiguousarray(
+        (image * colors.astype(np.uint16) // 255).astype(np.uint8)
+    )
     if background == 255:
         return 255 - image
     return image
