@@ -299,7 +299,7 @@ def main():
 
     if os.path.isdir(args.filename):
         os.makedirs(args.output, exist_ok=True)
-        for filename in os.listdir(args.filename):
+        for filename in ProgressBar(os.listdir(args.filename)):
             path = os.path.join(args.filename, filename)
             output = os.path.join(args.output, filename)
             convert_ascii(args, path, output, chars, monochrome)
