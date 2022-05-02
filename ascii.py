@@ -151,7 +151,7 @@ def ascii_video(
     writer.send(None)
     writer.send(first_frame)
 
-    for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] + 0.5)):
+    for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] - 0.5)):
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
         writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps))
 
