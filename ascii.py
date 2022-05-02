@@ -3,9 +3,6 @@
 Alex Eidt
 
 Converts videos/images into ASCII video/images in various formats.
-
-A simple character set to use: "@%#*+=-:. "
-
 """
 
 import os
@@ -49,9 +46,7 @@ def get_font_bitmaps(fontsize, boldness, background, chars, font):
             font=font_ttf,
             stroke_width=boldness,
         )
-        # Since font bitmaps are grayscale, all three color channels contain the same
-        # information, so one channel is extracted.
-        bitmap = np.array(image, dtype=np.uint8)[:, :, 0]
+        bitmap = np.array(image, dtype=np.uint8)
         if background == 255:
             bitmap = 255 - bitmap
         fonts.append(bitmap)
@@ -78,11 +73,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
     """
-    # fh -> font height.
-    # fw -> font width.
-    fh, fw = font_bitmaps[0].shape
-    # oh -> Original height.
-    # ow -> Original width.
+    # fh -> font height, fw -> font width.
+    fh, fw = font_bitmaps[0].shape[:2]
+    # oh -> Original height, ow -> Original width.
     oh, ow = frame.shape[:2]
     # Sample original frame at steps of font width and height.
     frame = frame[::fh, ::fw]
@@ -101,17 +94,20 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     frame >>= 11
 
     # Create a new list with each font bitmap based on the grayscale value.
-    image = font_bitmaps[frame].reshape((h, w, fh, fw)).transpose(0, 2, 1, 3).ravel()
-    image = np.tile(image, 3).reshape((3, h * fh, w * fw)).transpose(1, 2, 0)
+    image = (
+        font_bitmaps[frame]
+        .reshape((h, w, fh, fw, 3))
+        .transpose(0, 2, 1, 3, 4)
+        .ravel()
+        .reshape((h * fh, w * fw, 3))
+    )
 
     if clip:
         if len(monochrome) == 0:
             colors = colors[:oh, :ow]
-        image = image[:oh, :ow]
+        image = image[:oh, :ow, :]
 
-    image = np.ascontiguousarray(
-        (image * colors.astype(np.uint16) // 255).astype(np.uint8)
-    )
+    image = (image * colors.astype(np.uint16) // 255).astype(np.uint8)
     if background == 255:
         return 255 - image
     return image
@@ -153,7 +149,9 @@ def ascii_video(
 
     for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] - 0.5)):
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
-        writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps))
+        writer.send(
+            draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps)
+        )
 
     writer.close()
 
@@ -186,7 +184,7 @@ def parse_args():
         "--characters",
         required=False,
         help="ASCII chars to use in media.",
-        default=string.printable,
+        default="@%#*+=-:. ",
     )
     parser.add_argument(
         "-f",
@@ -292,7 +290,7 @@ def main():
     chars = np.array([c for c in string.printable if c in args.characters])
     monochrome = np.array(
         list(map(int, args.monochrome.split(","))) if args.monochrome else [],
-        dtype=np.uint32,
+        dtype=np.uint16,
     )
 
     if os.path.isdir(args.filename):
