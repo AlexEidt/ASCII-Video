@@ -129,7 +129,7 @@ def ascii_video(
     font="cour.ttf",
     audio=False,
 ):
-    font_maps = get_font_bitmaps(fontsize, boldness, background, chars, font)
+    font_bitmaps = get_font_bitmaps(fontsize, boldness, background, chars, font)
 
     video = imageio_ffmpeg.read_frames(filename)
     data = next(video)
@@ -139,7 +139,7 @@ def ascii_video(
     # Read and convert first frame to figure out frame size.
     first_frame = np.frombuffer(next(video), dtype=np.uint8).reshape(frame_size)
     first_frame = draw_ascii(
-        first_frame, chars, background, clip, monochrome, font_maps
+        first_frame, chars, background, clip, monochrome, font_bitmaps
     )
     h, w = first_frame.shape[:2]
 
@@ -153,7 +153,7 @@ def ascii_video(
 
     for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] + 0.5)):
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
-        writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_maps))
+        writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps))
 
     writer.close()
 
