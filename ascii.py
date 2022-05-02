@@ -92,7 +92,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
         colors = 255 - monochrome if background == 255 else monochrome
     else:
         colors = (
-            (255 - frame if background == 255 else frame).repeat(fh, 0).repeat(fw, 1)
+            (255 - frame if background == 255 else frame).repeat(fw, 1).repeat(fh, 0)
         )
 
     # Grayscale original frame and normalize to ASCII index.
