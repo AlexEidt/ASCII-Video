@@ -7,7 +7,6 @@ Converts videos/images into ASCII video/images in various formats.
 
 import os
 import argparse
-import string
 import imageio
 import imageio_ffmpeg
 import numpy as np
@@ -29,11 +28,13 @@ def get_font_bitmaps(fontsize, boldness, background, chars, font):
     Returns
         List of font bitmaps corresponding to the characters in "chars".
     """
-    fonts = []
+    bitmaps = {}
     min_width = min_height = float("inf")
     font_ttf = ImageFont.truetype(font, size=fontsize)
 
     for char in chars:
+        if char in bitmaps:
+            continue
         w, h = font_ttf.getsize(char)
         min_width, min_height = min(min_width, w), min(min_height, h)
         # Draw font character as a w x h image.
@@ -46,16 +47,17 @@ def get_font_bitmaps(fontsize, boldness, background, chars, font):
             font=font_ttf,
             stroke_width=boldness,
         )
-        bitmap = np.array(image, dtype=np.uint8)
+        bitmap = np.array(image)
         if background == 255:
             bitmap = 255 - bitmap
-        fonts.append(bitmap)
+        bitmaps[char] = bitmap.astype(np.uint8)
 
     # Crop the font bitmaps to all have the same dimensions based on the
     # minimum font width and height of all font bitmaps.
-    fonts = [bitmap[: int(min_height), : int(min_width)] for bitmap in fonts]
+    fonts = [bitmaps[char][: int(min_height), : int(min_width)] for char in chars]
     # Sort font bitmaps by pixel density.
-    return np.array(sorted(fonts, key=lambda x: x.sum(), reverse=True))
+    fonts.sort(key=lambda x: x.sum(), reverse=True)
+    return np.array(fonts)
 
 
 def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
@@ -105,7 +107,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     if clip:
         if len(monochrome) == 0:
             colors = colors[:oh, :ow]
-        image = image[:oh, :ow, :]
+        image = image[:oh, :ow]
 
     image = (image * colors.astype(np.uint16) // 255).astype(np.uint8)
     if background == 255:
@@ -287,7 +289,7 @@ def main():
     assert args.bold >= 0, "Boldness must be >= 0."
     assert args.background in [0, 255], "Background must be either 0 or 255."
 
-    chars = np.array([c for c in string.printable if c in args.characters])
+    chars = np.array(list(args.characters))
     monochrome = np.array(
         list(map(int, args.monochrome.split(","))) if args.monochrome else [],
         dtype=np.uint16,
