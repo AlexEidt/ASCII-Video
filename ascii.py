@@ -13,8 +13,6 @@ import numpy as np
 from tqdm import tqdm as ProgressBar
 from PIL import Image, ImageFont, ImageDraw
 
-import numexpr as ne
-
 
 def get_font_bitmaps(fontsize, boldness, reverse, background, chars, font):
     """
