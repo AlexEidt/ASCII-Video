@@ -14,6 +14,7 @@ positional arguments:
 optional arguments:
   -h, --help    show this help message and exit
   -chars CHARS  ASCII chars to use in media.
+  -r            Reverse the character order.
   -f [F]        Font size.
   -b [B]        Boldness of characters. Recommended boldness is 1/10 of Font size.
   -bg [BG]      Background color. Must be either 255 for white or 0 for black.

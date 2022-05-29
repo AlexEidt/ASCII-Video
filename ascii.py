@@ -13,14 +13,17 @@ import numpy as np
 from tqdm import tqdm as ProgressBar
 from PIL import Image, ImageFont, ImageDraw
 
+import numexpr as ne
 
-def get_font_bitmaps(fontsize, boldness, background, chars, font):
+
+def get_font_bitmaps(fontsize, boldness, reverse, background, chars, font):
     """
     Returns a list of font bitmaps.
 
     Parameters
         fontsize    - Font size to use for ASCII characters
         boldness    - Stroke size to use when drawing ASCII characters
+        reverse     - Reverse the ordering of the ASCII characters
         background  - Background color
         chars       - ASCII characters to use in media
         font        - Font to use
@@ -56,11 +59,11 @@ def get_font_bitmaps(fontsize, boldness, background, chars, font):
     # minimum font width and height of all font bitmaps.
     fonts = [bitmaps[char][: int(min_height), : int(min_width)] for char in chars]
     # Sort font bitmaps by pixel density.
-    fonts.sort(key=lambda x: x.sum(), reverse=True)
+    fonts.sort(key=lambda x: x.sum(), reverse=not reverse)
     return np.array(fonts)
 
 
-def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
+def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer):
     """
     Draws an ASCII Image.
 
@@ -71,6 +74,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
         clip            - Clip characters to not go outside of image bounds
         monochrome      - Color to use for monochromatic. None if not monochromatic
         font_bitmaps    - List of font bitmaps
+        buffer          - Buffer for intermediary calculations
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
@@ -83,24 +87,28 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
 
+    buffer_view = buffer[:h, :w]
     if len(monochrome) != 0:
         colors = 255 - monochrome if background == 255 else monochrome
     else:
-        colors = (
-            (255 - frame if background == 255 else frame).repeat(fw, 1).repeat(fh, 0)
-        )
+        if background == 255:
+            np.subtract(255, frame, out=buffer_view)
+        else:
+            buffer_view[:] = frame
+        
+        colors = buffer_view.astype(np.uint16, copy=False).repeat(fw, 1).repeat(fh, 0)
 
     # Grayscale original frame and normalize to ASCII index.
-    frame = (frame * np.array([3, 4, 1])).sum(axis=2, dtype=np.uint32).ravel()
-    frame *= len(chars)
-    frame >>= 11
+    buffer_view = buffer_view[..., 0]
+    np.sum(frame * np.array([3, 4, 1]), axis=2, dtype=buffer.dtype, out=buffer_view)
+    buffer_view *= len(chars)
+    buffer_view >>= 11
 
     # Create a new list with each font bitmap based on the grayscale value.
     image = (
-        font_bitmaps[frame]
+        font_bitmaps[buffer_view.reshape(-1)]
         .reshape((h, w, fh, fw, 3))
         .transpose(0, 2, 1, 3, 4)
-        .ravel()
         .reshape((h * fh, w * fw, 3))
     )
 
@@ -109,10 +117,12 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps):
             colors = colors[:oh, :ow]
         image = image[:oh, :ow]
 
-    image = (image * colors.astype(np.uint16) // 255).astype(np.uint8)
+    np.multiply(image, colors, out=buffer)
+    np.floor_divide(buffer, 255, out=buffer)
+    buffer = buffer.astype(np.uint8, copy=False)
     if background == 255:
-        return 255 - image
-    return image
+        np.subtract(255, buffer, out=buffer)
+    return buffer
 
 
 def ascii_video(
@@ -122,23 +132,25 @@ def ascii_video(
     monochrome,
     fontsize=20,
     boldness=2,
+    reverse=False,
     background=255,
     clip=True,
     font="cour.ttf",
     audio=False,
 ):
-    font_bitmaps = get_font_bitmaps(fontsize, boldness, background, chars, font)
+    font_bitmaps = get_font_bitmaps(fontsize, boldness, reverse, background, chars, font)
 
     video = imageio_ffmpeg.read_frames(filename)
     data = next(video)
 
     w, h = data["size"]
     frame_size = (h, w, 3)
+    # Smaller data types can speed up operations. The minimum data type required will be
+    # 2^n / (255 * 8) > len(chars) where n = 16 or 32.
+    buffer = np.empty(frame_size, dtype=np.uint16 if len(chars) < 32 else np.uint32)
     # Read and convert first frame to figure out frame size.
     first_frame = np.frombuffer(next(video), dtype=np.uint8).reshape(frame_size)
-    first_frame = draw_ascii(
-        first_frame, chars, background, clip, monochrome, font_bitmaps
-    )
+    first_frame = draw_ascii(first_frame, chars, background, clip, monochrome, font_bitmaps, buffer)
     h, w = first_frame.shape[:2]
 
     kwargs = {"fps": data["fps"]}
@@ -151,9 +163,7 @@ def ascii_video(
 
     for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] - 0.5)):
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
-        writer.send(
-            draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps)
-        )
+        writer.send(draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer))
 
     writer.close()
 
@@ -165,13 +175,15 @@ def ascii_image(
     monochrome,
     fontsize=20,
     boldness=2,
+    reverse=False,
     background=255,
     clip=True,
     font="cour.ttf",
 ):
     image = imageio.imread(filename)[:, :, :3]
-    font_bitmaps = get_font_bitmaps(fontsize, boldness, background, chars, font)
-    image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps)
+    font_bitmaps = get_font_bitmaps(fontsize, boldness, reverse, background, chars, font)
+    buffer = np.empty_like(image, dtype=np.uint16 if len(chars) < 32 else np.uint32)
+    image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps, buffer)
     imageio.imsave(output, image)
 
 
@@ -181,73 +193,15 @@ def parse_args():
     parser.add_argument("filename", help="File name of the input image.")
     parser.add_argument("output", help="File name of the output image.")
 
-    parser.add_argument(
-        "-chars",
-        "--characters",
-        required=False,
-        help="ASCII chars to use in media.",
-        default="@%#*+=-:. ",
-    )
-    parser.add_argument(
-        "-f",
-        "--fontsize",
-        required=False,
-        help="Font size.",
-        nargs="?",
-        const=1,
-        type=int,
-        default=20,
-    )
-    parser.add_argument(
-        "-b",
-        "--bold",
-        required=False,
-        help="Boldness of characters. Recommended boldness is 1/10 of Font size.",
-        nargs="?",
-        const=1,
-        type=int,
-        default=2,
-    )
-    parser.add_argument(
-        "-bg",
-        "--background",
-        required=False,
-        help="Background color. Must be either 255 for white or 0 for black.",
-        nargs="?",
-        const=1,
-        type=int,
-        default=255,
-    )
-    parser.add_argument(
-        "-m",
-        "--monochrome",
-        required=False,
-        help='Color to use for Monochromatic characters in "R,G,B" format.',
-    )
-    parser.add_argument(
-        "-c",
-        "--clip",
-        required=False,
-        help="Clip characters to not go outside of image bounds.",
-        action="store_false",
-    )
-    parser.add_argument(
-        "-font",
-        "--font",
-        required=False,
-        help="Font to use.",
-        nargs="?",
-        const=1,
-        type=str,
-        default="cour.ttf",
-    )
-    parser.add_argument(
-        "-a",
-        "--audio",
-        required=False,
-        help="Add audio from the input file to the output file.",
-        action="store_true",
-    )
+    parser.add_argument("-chars", "--characters", help="ASCII chars to use in media.", default="@%#*+=-:. ")
+    parser.add_argument("-r", "--reverse", help="Reverse the character order.", action="store_true")
+    parser.add_argument("-f", "--fontsize", help="Font size.", type=int, default=20)
+    parser.add_argument("-b", "--bold", help="Boldness of characters. Recommended: 1/10 font size.", type=int, default=2)
+    parser.add_argument("-bg", "--background", help="Background color. Must be 255 (white) or 0 (black).", type=int, default=255)
+    parser.add_argument("-m", "--monochrome", help='Color to use for Monochromatic characters in "R,G,B" format.')
+    parser.add_argument("-c", "--clip", help="Clip characters to not go outside of image bounds.", action="store_false")
+    parser.add_argument("-font", "--font", help="Font to use.", type=str, default="cour.ttf")
+    parser.add_argument("-a", "--audio", help="Add audio from the input file to the output file.", action="store_true")
 
     return parser.parse_args()
 
@@ -263,6 +217,7 @@ def convert_ascii(args, filename, output, chars, monochrome):
             monochrome,
             args.fontsize,
             args.bold,
+            args.reverse,
             args.background,
             args.clip,
             args.font,
@@ -276,6 +231,7 @@ def convert_ascii(args, filename, output, chars, monochrome):
             monochrome,
             args.fontsize,
             args.bold,
+            args.reverse,
             args.background,
             args.clip,
             args.font,
