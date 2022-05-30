@@ -87,14 +87,16 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer)
 
     buffer_view = buffer[:h, :w]
     if len(monochrome) != 0:
-        colors = 255 - monochrome if background == 255 else monochrome
+        buffer_view[:] = 1
+        monochrome = np.abs(background - monochrome.astype(np.int16)).astype(buffer.dtype)
+        np.multiply(buffer_view, monochrome, out=buffer_view)
     else:
         if background == 255:
             np.subtract(255, frame, out=buffer_view)
         else:
             buffer_view = frame
-        
-        colors = buffer_view.repeat(fw, 1).astype(np.uint16, copy=False).repeat(fh, 0)
+    
+    colors = buffer_view.repeat(fw, 1).astype(np.uint16, copy=False).repeat(fh, 0)
 
     # Grayscale original frame and normalize to ASCII index.
     buffer_view = buffer_view[..., 0]
@@ -111,8 +113,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer)
     )
 
     if clip:
-        if len(monochrome) == 0:
-            colors = colors[:oh, :ow]
+        colors = colors[:oh, :ow]
         image = image[:oh, :ow]
 
     np.multiply(image, colors, out=buffer)
