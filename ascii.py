@@ -50,7 +50,7 @@ def get_font_bitmaps(fontsize, boldness, reverse, background, chars, font):
         )
         bitmap = np.array(image)
         if background == 255:
-            bitmap = 255 - bitmap
+            np.subtract(255, bitmap, out=bitmap)
         bitmaps[char] = bitmap.astype(np.uint8)
 
     # Crop the font bitmaps to all have the same dimensions based on the
@@ -92,9 +92,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer)
         if background == 255:
             np.subtract(255, frame, out=buffer_view)
         else:
-            buffer_view[:] = frame
+            buffer_view = frame
         
-        colors = buffer_view.astype(np.uint16, copy=False).repeat(fw, 1).repeat(fh, 0)
+        colors = buffer_view.repeat(fw, 1).astype(np.uint16, copy=False).repeat(fh, 0)
 
     # Grayscale original frame and normalize to ASCII index.
     buffer_view = buffer_view[..., 0]
