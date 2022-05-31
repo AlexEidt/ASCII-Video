@@ -61,7 +61,7 @@ def get_font_bitmaps(fontsize, boldness, reverse, background, chars, font):
     return np.array(fonts)
 
 
-def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer):
+def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=None):
     """
     Draws an ASCII Image.
 
@@ -72,7 +72,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer)
         clip            - Clip characters to not go outside of image bounds
         monochrome      - Color to use for monochromatic. None if not monochromatic
         font_bitmaps    - List of font bitmaps
-        buffer          - Buffer for intermediary calculations
+        buffer          - Optional buffer for intermediary calculations
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
@@ -85,9 +85,14 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer)
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
 
+    if buffer is None:
+        buffer = np.empty_like(frame, dtype=np.uint16 if len(chars) < 32 else np.uint32)
+
     buffer_view = buffer[:h, :w]
     if len(monochrome) != 0:
         buffer_view[:] = 1
+        if background == 255:
+            monochrome = 255 - monochrome
         np.multiply(buffer_view, monochrome, out=buffer_view)
     else:
         if background == 255:
@@ -137,7 +142,6 @@ def ascii_video(
     audio=False,
 ):
     font_bitmaps = get_font_bitmaps(fontsize, boldness, reverse, background, chars, font)
-    monochrome = 255 - monochrome if len(monochrome) and background == 255 else monochrome
 
     video = imageio_ffmpeg.read_frames(filename)
     data = next(video)
@@ -181,7 +185,6 @@ def ascii_image(
 ):
     image = imageio.imread(filename)[:, :, :3]
     font_bitmaps = get_font_bitmaps(fontsize, boldness, reverse, background, chars, font)
-    monochrome = 255 - monochrome if background == 255 else monochrome
     buffer = np.empty_like(image, dtype=np.uint16 if len(chars) < 32 else np.uint32)
     image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps, buffer)
     imageio.imsave(output, image)
