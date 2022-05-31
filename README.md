@@ -22,6 +22,7 @@ optional arguments:
   -c            Clip characters to not go outside of image bounds.
   -font [FONT]  Font to use.
   -a            Add audio from the input file to the output file.
+  -q            Quality of the output video. (0-10), 0 worst, 10 best.
 ```
 
 Instead of a filename, a directory name can be used as the `filename` argument. All media in this directory will be converted to ASCII Form and be placed in a directory specified by the `output` argument. Note that this means if a directory is passed as the `filename` argument, the `output` argument must also be a directory and all media in `filename` must be either images and/or videos.
