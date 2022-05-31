@@ -74,7 +74,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
         font_bitmaps    - List of font bitmaps.
         buffer          - Optional buffer for intermediary calculations.
                           Must have shape: ((h // fh + 1) * fh, (w // fw + 1) * fw, 3) where
-                          h, w are the height and width of the frame and fh, fw are the font width and height.
+                          h, w are the height and width of the frame and fw, fh are the font width and height.
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
