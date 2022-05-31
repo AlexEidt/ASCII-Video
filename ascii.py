@@ -77,9 +77,6 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
     """
-    if buffer is None:
-        buffer = np.empty_like(frame, dtype=np.uint16 if len(chars) < 32 else np.uint32)
-
     # fh -> font height, fw -> font width.
     fh, fw = font_bitmaps[0].shape[:2]
     # oh -> Original height, ow -> Original width.
@@ -87,6 +84,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     # Sample original frame at steps of font width and height.
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
+
+    if buffer is None:
+        buffer = np.empty((h * fh, w * fw, 3), dtype=np.uint16 if len(chars) < 32 else np.uint32)
 
     buffer_view = buffer[:h, :w]
     if len(monochrome) != 0:
@@ -110,8 +110,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
 
     # Create a new list with each font bitmap based on the grayscale value.
     image = (
-        font_bitmaps[buffer_view.reshape(-1)]
-        .reshape((h, w, fh, fw, 3))
+        font_bitmaps[buffer_view]
         .transpose(0, 2, 1, 3, 4)
         .reshape((h * fh, w * fw, 3))
     )
@@ -119,6 +118,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     if clip:
         colors = colors[:oh, :ow]
         image = image[:oh, :ow]
+        buffer = buffer[:oh, :ow]
 
     np.multiply(image, colors, out=buffer)
     np.floor_divide(buffer, 255, out=buffer)
@@ -148,12 +148,12 @@ def ascii_video(
 
     w, h = data["size"]
     frame_size = (h, w, 3)
-    # Smaller data types can speed up operations. The minimum data type required will be
-    # 2^n / (255 * 8) > len(chars) where n = 16 or 32.
-    buffer = np.empty(frame_size, dtype=np.uint16 if len(chars) < 32 else np.uint32)
     # Read and convert first frame to figure out frame size.
     first_frame = np.frombuffer(next(video), dtype=np.uint8).reshape(frame_size)
-    first_frame = draw_ascii(first_frame, chars, background, clip, monochrome, font_bitmaps, buffer)
+    first_frame = draw_ascii(first_frame, chars, background, clip, monochrome, font_bitmaps)
+    # Smaller data types can speed up operations. The minimum data type required will be
+    # 2^n / (255 * 8) > len(chars) where n = 16 or 32.
+    buffer = np.empty_like(first_frame, dtype=np.uint16 if len(chars) < 32 else np.uint32)
     h, w = first_frame.shape[:2]
 
     kwargs = {"fps": data["fps"]}
