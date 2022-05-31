@@ -19,12 +19,12 @@ def get_font_bitmaps(fontsize, boldness, reverse, background, chars, font):
     Returns a list of font bitmaps.
 
     Parameters
-        fontsize    - Font size to use for ASCII characters
-        boldness    - Stroke size to use when drawing ASCII characters
-        reverse     - Reverse the ordering of the ASCII characters
-        background  - Background color
-        chars       - ASCII characters to use in media
-        font        - Font to use
+        fontsize    - Font size to use for ASCII characters.
+        boldness    - Stroke size to use when drawing ASCII characters.
+        reverse     - Reverse the ordering of the ASCII characters.
+        background  - Background color.
+        chars       - ASCII characters to use in media.
+        font        - Font to use.
 
     Returns
         List of font bitmaps corresponding to the characters in "chars".
@@ -66,13 +66,13 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     Draws an ASCII Image.
 
     Parameters
-        frame           - Numpy array representing image
-        chars           - ASCII characters to use in media
-        background      - Background color
-        clip            - Clip characters to not go outside of image bounds
-        monochrome      - Color to use for monochromatic. None if not monochromatic
-        font_bitmaps    - List of font bitmaps
-        buffer          - Optional buffer for intermediary calculations
+        frame           - Numpy array representing image. Must be 3 channels RGB.
+        chars           - ASCII characters to use in media.
+        background      - Background color.
+        clip            - Clip characters to not go outside of image bounds.
+        monochrome      - Color to use for monochromatic. None if not monochromatic.
+        font_bitmaps    - List of font bitmaps.
+        buffer          - Optional buffer for intermediary calculations. Must be at least as big as "frame".
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
