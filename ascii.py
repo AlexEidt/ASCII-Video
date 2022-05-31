@@ -72,7 +72,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
         clip            - Clip characters to not go outside of image bounds.
         monochrome      - Color to use for monochromatic. None if not monochromatic.
         font_bitmaps    - List of font bitmaps.
-        buffer          - Optional buffer for intermediary calculations. Must be at least as big as "frame".
+        buffer          - Optional buffer for intermediary calculations. Must have same dimensions as "frame".
 
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
