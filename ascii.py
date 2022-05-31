@@ -163,6 +163,7 @@ def ascii_video(
     writer = imageio_ffmpeg.write_frames(output, (w, h), **kwargs)
     writer.send(None)
     writer.send(first_frame)
+    del first_frame
 
     for frame in ProgressBar(video, total=int(data["fps"] * data["duration"] - 0.5)):
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(frame_size)
