@@ -77,6 +77,9 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     NOTE: Characters such as q, g, y, etc... are not rendered properly in this implementation
     due to the lower ends being cut off.
     """
+    if buffer is None:
+        buffer = np.empty_like(frame, dtype=np.uint16 if len(chars) < 32 else np.uint32)
+
     # fh -> font height, fw -> font width.
     fh, fw = font_bitmaps[0].shape[:2]
     # oh -> Original height, ow -> Original width.
@@ -84,9 +87,6 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     # Sample original frame at steps of font width and height.
     frame = frame[::fh, ::fw]
     h, w = frame.shape[:2]
-
-    if buffer is None:
-        buffer = np.empty_like(frame, dtype=np.uint16 if len(chars) < 32 else np.uint32)
 
     buffer_view = buffer[:h, :w]
     if len(monochrome) != 0:
@@ -185,8 +185,7 @@ def ascii_image(
 ):
     image = imageio.imread(filename)[:, :, :3]
     font_bitmaps = get_font_bitmaps(fontsize, boldness, reverse, background, chars, font)
-    buffer = np.empty_like(image, dtype=np.uint16 if len(chars) < 32 else np.uint32)
-    image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps, buffer)
+    image = draw_ascii(image, chars, background, clip, monochrome, font_bitmaps)
     imageio.imsave(output, image)
 
 
