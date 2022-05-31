@@ -114,7 +114,7 @@ def draw_ascii(frame, chars, background, clip, monochrome, font_bitmaps, buffer=
     image = (
         font_bitmaps[buffer_view]
         .transpose(0, 2, 1, 3, 4)
-        .reshape((h * fh, w * fw, 3))
+        .reshape(h * fh, w * fw, 3)
     )
 
     if clip:
